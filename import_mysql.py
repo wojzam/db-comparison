@@ -1,11 +1,6 @@
-import os
-
-import pandas as pd
 from sqlalchemy import create_engine
 
-
-def read_data(filename, directory='data'):
-    return pd.read_csv(os.path.join(directory, f'{filename}.csv'))
+from file_manager import *
 
 
 def insert_table(engine, df, table_name):

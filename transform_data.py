@@ -1,15 +1,6 @@
-import os
-
-import pandas as pd
+from file_manager import *
 
 BGG_ID = 'BGGId'
-DIRECTORY = 'data'
-
-
-def save_to_file(data, filename, directory=DIRECTORY):
-    os.makedirs(directory, exist_ok=True)
-    data.to_csv(os.path.join(directory, f'{filename}.csv'), index=False)
-    print(f"Saved {filename}.csv file")
 
 
 def columns_to_rows(filename, new_filename, main_column_name, id_column_name='id'):
