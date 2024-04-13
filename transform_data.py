@@ -45,11 +45,11 @@ to_drop = ['GameWeight', 'AvgRating', 'BayesAvgRating', 'StdDev', 'NumUserRating
 games_table.drop(to_drop, inplace=True, axis=1)
 save_to_file(games_table, "GAMES")
 
-columns_to_rows('artists_reduced', 'ARTISTS', 'ArtistName', 'ArtistId')
-columns_to_rows('designers_reduced', 'DESIGNERS', 'DesignerName', 'DesignerId')
-columns_to_rows('publishers_reduced', 'PUBLISHERS', 'PublisherName', 'PublisherId')
-columns_to_rows('themes', 'THEMES', 'ThemeName', 'ThemeId')
-columns_to_rows('mechanics', 'MECHANICS', 'MechanicName', 'MechanicId')
-columns_to_rows('subcategories', 'SUBCATEGORIES', 'SubcategoryName', 'SubcategoryId')
+columns_to_rows('artists_reduced', 'ARTISTS', 'Name', 'ArtistId')
+columns_to_rows('designers_reduced', 'DESIGNERS', 'Name', 'DesignerId')
+columns_to_rows('publishers_reduced', 'PUBLISHERS', 'Name', 'PublisherId')
+columns_to_rows('themes', 'THEMES', 'Name', 'ThemeId')
+columns_to_rows('mechanics', 'MECHANICS', 'Name', 'MechanicId')
+columns_to_rows('subcategories', 'SUBCATEGORIES', 'Name', 'SubcategoryId')
 
 os.system(f'copy user_ratings.csv {DIRECTORY}\\USER_RATINGS.csv')
