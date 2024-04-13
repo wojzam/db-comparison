@@ -4,7 +4,7 @@ BGG_ID = 'BGGId'
 
 
 def columns_to_rows(filename, new_filename, main_column_name, id_column_name='id'):
-    old_table = pd.read_csv(f'{filename}.csv')
+    old_table = read_data(filename, SOURCE_DIRECTORY)
     old_columns = old_table.columns.values.tolist()
     old_columns.remove(BGG_ID)
 
@@ -29,7 +29,7 @@ def create_relation_table(old_table, new_filename, id_column_name):
     save_to_file(pd.DataFrame(relations, columns=[BGG_ID, id_column_name]), "GAMES_" + new_filename)
 
 
-games_table = pd.read_csv("games.csv")
+games_table = read_data("games", SOURCE_DIRECTORY)
 
 extract_ratings = ['BGGId', 'GameWeight', 'AvgRating', 'BayesAvgRating', 'StdDev', 'NumUserRatings', 'NumComments']
 save_to_file(games_table[extract_ratings], "RATINGS")
@@ -52,4 +52,4 @@ columns_to_rows('themes', 'THEMES', 'Name', 'ThemeId')
 columns_to_rows('mechanics', 'MECHANICS', 'Name', 'MechanicId')
 columns_to_rows('subcategories', 'SUBCATEGORIES', 'Name', 'SubcategoryId')
 
-os.system(f'copy user_ratings.csv {DIRECTORY}\\USER_RATINGS.csv')
+os.system(f'copy {SOURCE_DIRECTORY}\\user_ratings.csv {DATA_DIRECTORY}\\USER_RATINGS.csv')
