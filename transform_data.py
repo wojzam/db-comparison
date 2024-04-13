@@ -9,7 +9,7 @@ def columns_to_rows(filename, new_filename, main_column_name, id_column_name='id
     old_columns.remove(BGG_ID)
 
     new_table = pd.DataFrame(old_columns, columns=[main_column_name])
-    new_table[id_column_name] = new_table.reset_index(drop=True).index
+    new_table[id_column_name] = new_table.reset_index(drop=True).index + 1
 
     new_columns = new_table.columns.values.tolist()
     new_columns = new_columns[-1:] + new_columns[:-1]
@@ -25,7 +25,7 @@ def create_relation_table(old_table, new_filename, id_column_name):
     for i in range(matrix.shape[0]):
         for j in range(matrix.shape[1]):
             if matrix[i, j] == 1:
-                relations.append([game_id[i], j])
+                relations.append([game_id[i], j + 1])
     save_to_file(pd.DataFrame(relations, columns=[BGG_ID, id_column_name]), "GAMES_" + new_filename)
 
 
