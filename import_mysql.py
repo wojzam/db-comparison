@@ -15,7 +15,7 @@ def convert_value(value, dtype):
         return value
 
 
-def insert_df_to_table(df, table):
+def insert_table(df, table):
     with Session() as session:
         for _, row in df.iterrows():
             instance_data = {col: convert_value(row[col], df[col]) for col in df.columns}
@@ -40,19 +40,19 @@ Base.metadata.create_all(engine, checkfirst=True)
 
 Session = sessionmaker(bind=engine)
 
-insert_df_to_table(read_data('GAMES'), Games)
-insert_df_to_table(read_data('DEMAND'), Demand)
-insert_df_to_table(read_data('RATINGS'), Ratings)
+insert_table(read_data('GAMES'), Games)
+insert_table(read_data('DEMAND'), Demand)
+insert_table(read_data('RATINGS'), Ratings)
 
-insert_df_to_table(read_data('ARTISTS'), Artists)
-insert_df_to_table(read_data('DESIGNERS'), Designers)
-insert_df_to_table(read_data('PUBLISHERS'), Publishers)
-insert_df_to_table(read_data('THEMES'), Themes)
-insert_df_to_table(read_data('MECHANICS'), Mechanics)
-insert_df_to_table(read_data('SUBCATEGORIES'), Subcategories)
+insert_table(read_data('ARTISTS'), Artists)
+insert_table(read_data('DESIGNERS'), Designers)
+insert_table(read_data('PUBLISHERS'), Publishers)
+insert_table(read_data('THEMES'), Themes)
+insert_table(read_data('MECHANICS'), Mechanics)
+insert_table(read_data('SUBCATEGORIES'), Subcategories)
 
-insert_df_to_table(read_data('GAMES_ARTISTS'), GamesArtists)
-insert_df_to_table(read_data('GAMES_DESIGNERS'), GamesDesigners)
-insert_df_to_table(read_data('GAMES_PUBLISHERS'), GamesPublishers)
-insert_df_to_table(read_data('GAMES_MECHANICS'), GamesMechanics)
-insert_df_to_table(read_data('GAMES_SUBCATEGORIES'), GamesSubcategories)
+insert_table(read_data('GAMES_ARTISTS'), GamesArtists)
+insert_table(read_data('GAMES_DESIGNERS'), GamesDesigners)
+insert_table(read_data('GAMES_PUBLISHERS'), GamesPublishers)
+insert_table(read_data('GAMES_MECHANICS'), GamesMechanics)
+insert_table(read_data('GAMES_SUBCATEGORIES'), GamesSubcategories)
