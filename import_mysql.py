@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database
 
 from file_manager import *
-from mysql_tables import *
+from sql_tables import *
 
 
 def convert_value(value, dtype):
