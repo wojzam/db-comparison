@@ -29,14 +29,14 @@ db = client['boardgameDB']
 
 games = read_data('GAMES')
 
-embed_one_to_one(games, read_data('DEMAND'), 'demand')
-embed_one_to_one(games, read_data('RATINGS'), 'ratings')
-embed_many_to_many(games, read_data('GAMES_ARTISTS'), 'artistIds')
-embed_many_to_many(games, read_data('GAMES_DESIGNERS'), 'designerIds')
-embed_many_to_many(games, read_data('GAMES_PUBLISHERS'), 'publisherIds')
-embed_many_to_many(games, read_data('GAMES_THEMES'), 'themeIds')
-embed_many_to_many(games, read_data('GAMES_MECHANICS'), 'mechanicIds')
-embed_many_to_many(games, read_data('GAMES_SUBCATEGORIES'), 'subcategoryIds')
+embed_one_to_one(games, read_data('DEMAND'), 'Demand')
+embed_one_to_one(games, read_data('RATINGS'), 'Ratings')
+embed_many_to_many(games, read_data('GAMES_ARTISTS'), 'ArtistIds')
+embed_many_to_many(games, read_data('GAMES_DESIGNERS'), 'DesignerIds')
+embed_many_to_many(games, read_data('GAMES_PUBLISHERS'), 'PublisherIds')
+embed_many_to_many(games, read_data('GAMES_THEMES'), 'ThemeIds')
+embed_many_to_many(games, read_data('GAMES_MECHANICS'), 'MechanicIds')
+embed_many_to_many(games, read_data('GAMES_SUBCATEGORIES'), 'SubcategoryIds')
 
 insert_collection(db, games, 'games')
 insert_collection(db, read_data('ARTISTS'), 'artists')
