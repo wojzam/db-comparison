@@ -43,6 +43,11 @@ to_drop = ['GameWeight', 'AvgRating', 'BayesAvgRating', 'StdDev', 'NumUserRating
            'Rank:wargames', 'Rank:partygames', 'Rank:childrensgames', 'Cat:Thematic', 'Cat:Strategy', 'Cat:War',
            'Cat:Family', 'Cat:CGS', 'Cat:Abstract', 'Cat:Party', 'Cat:Childrens']
 games_table.drop(to_drop, inplace=True, axis=1)
+
+games_table['Description'].fillna('', inplace=True)
+games_table['ComAgeRec'].fillna(0, inplace=True)
+games_table['LanguageEase'].fillna(0, inplace=True)
+
 save_to_file(games_table, "GAMES")
 
 columns_to_rows('artists_reduced', 'ARTISTS', 'Name', 'ArtistId')
