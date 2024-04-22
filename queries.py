@@ -78,7 +78,8 @@ class MongoDbQuery(Query):
         return pd.DataFrame(list(artists.find().limit(LIMIT)))
 
     def select_from_demand_game(self):
-        return self.select_from_games(self)
+        games = self.db['games']
+        return pd.DataFrame(list(games.find().limit(LIMIT)))
 
 
 class RedisQuery(Query):
