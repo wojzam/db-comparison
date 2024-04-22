@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 from sql_tables import Games, Artists, Demand
 
-LIMIT = 100
+LIMIT = 1000
 
 
 class Query(ABC):
