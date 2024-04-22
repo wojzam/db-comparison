@@ -14,40 +14,46 @@ LIMIT = 100
 class Query(ABC):
 
     @abstractmethod
-    def select_from_games(self):
+    def list_games(self):
         pass
 
     @abstractmethod
-    def select_from_artists(self):
+    def list_games_names(self):
         pass
 
     @abstractmethod
-    def select_from_demand_game(self):
+    def list_artists_names(self):
+        pass
+
+    @abstractmethod
+    def list_demand_with_game_name(self):
         pass
 
 
 class SqlQuery(Query):
     def __init__(self):
-        self.engine = create_engine(self.get_db_url())
+        self.engine = create_engine(self.get_db_url(), echo=True)
 
     @abstractmethod
     def get_db_url(self) -> str:
         pass
 
-    def select_from_games(self):
+    def execute_query(self, query):
         with sessionmaker(bind=self.engine)() as session:
-            query = session.query(Games).limit(LIMIT).statement
-            return pd.read_sql(query, session.bind)
+            statement = query(session).limit(LIMIT).statement
+            return pd.read_sql(statement, session.bind)
 
-    def select_from_artists(self):
-        with sessionmaker(bind=self.engine)() as session:
-            query = session.query(Artists).limit(LIMIT).statement
-            return pd.read_sql(query, session.bind)
+    def list_games(self):
+        return self.execute_query(lambda s: s.query(Games))
 
-    def select_from_demand_game(self):
-        with sessionmaker(bind=self.engine)() as session:
-            query = session.query(Demand, Games).join(Games).limit(LIMIT).statement
-            return pd.read_sql(query, session.bind)
+    def list_games_names(self):
+        return self.execute_query(lambda s: s.query(Games.Name))
+
+    def list_artists_names(self):
+        return self.execute_query(lambda s: s.query(Artists.Name))
+
+    def list_demand_with_game_name(self):
+        return self.execute_query(lambda s: s.query(Demand, Games.Name).join(Games))
 
 
 class MySqlQuery(SqlQuery):
@@ -71,36 +77,46 @@ class MongoDbQuery(Query):
         client = MongoClient('mongodb://localhost:27017/')
         self.db = client['boardgameDB']
 
-    def select_from_games(self):
-        games = self.db['games']
-        return pd.DataFrame(games.find().limit(LIMIT))
+    def get_all(self, collection, *args):
+        games = self.db[collection]
+        return pd.DataFrame(games.find(*args).limit(LIMIT))
 
-    def select_from_artists(self):
-        artists = self.db['artists']
-        return pd.DataFrame(artists.find().limit(LIMIT))
+    def list_games(self):
+        return self.get_all('games')
 
-    def select_from_demand_game(self):
-        games = self.db['games']
-        return pd.DataFrame(games.find().limit(LIMIT))
+    def list_games_names(self):
+        return self.get_all('games', {}, {'Name': 1, '_id': 0})
+
+    def list_artists_names(self):
+        return self.get_all('artists', {}, {'Name': 1, '_id': 0})
+
+    def list_demand_with_game_name(self):
+        return self.get_all('games', {}, {'Demand': 1, 'Name': 1, '_id': 0})
 
 
 class RedisQuery(Query):
     def __init__(self):
         self.r = redis.Redis(host='localhost', port=6379, db=0)
 
-    def get_all(self, match):
+    def get_all(self, match, fields=None):
         data = []
         for i, key in enumerate(self.r.scan_iter(match)):
             if i >= LIMIT:
                 break
-            data.append(self.r.hgetall(key))
+            if fields:
+                data.append({field: self.r.hget(key, field) for field in fields})
+            else:
+                data.append(self.r.hgetall(key))
         return pd.DataFrame(data)
 
-    def select_from_games(self):
+    def list_games(self):
         return self.get_all('game:*')
 
-    def select_from_artists(self):
-        return self.get_all('artist:*')
+    def list_games_names(self):
+        return self.get_all('game:*', ['Name'])
 
-    def select_from_demand_game(self):
-        return self.get_all('game:*')
+    def list_artists_names(self):
+        return self.get_all('artist:*', ['Name'])
+
+    def list_demand_with_game_name(self):
+        return self.get_all('game:*', ['Name', 'Demand'])

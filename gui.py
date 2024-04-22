@@ -10,7 +10,8 @@ MONGODB = "MongoDb"
 REDIS = "Redis"
 
 DATABASES_LABELS = [MYSQL, SQLITE, MONGODB, REDIS]
-QUERIES = [q.__name__ for q in [Query.select_from_games, Query.select_from_artists, Query.select_from_demand_game]]
+QUERIES = [q.__name__ for q in
+           [Query.list_games, Query.list_games_names, Query.list_artists_names, Query.list_demand_with_game_name]]
 QUERIES_LABELS = [q.replace("_", " ").upper() for q in QUERIES]
 QUERIES_DICT = dict(zip(QUERIES_LABELS, QUERIES))
 
