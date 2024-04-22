@@ -5,7 +5,7 @@ from pymongo import MongoClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from sql_tables import Games, Artists
+from sql_tables import Games, Artists, Demand
 
 LIMIT = 100
 
@@ -20,6 +20,9 @@ class Query(ABC):
     def select_from_artists(self):
         pass
 
+    @abstractmethod
+    def select_from_demand_game(self):
+        pass
 
 class SqlQuery(Query):
     def __init__(self):
@@ -37,6 +40,11 @@ class SqlQuery(Query):
     def select_from_artists(self):
         with sessionmaker(bind=self.engine)() as session:
             query = session.query(Artists).limit(LIMIT).statement
+            return pd.read_sql(query, session.bind)
+
+    def select_from_demand_game(self):
+        with sessionmaker(bind=self.engine)() as session:
+            query = session.query(Demand, Games).join(Games).limit(LIMIT).statement
             return pd.read_sql(query, session.bind)
 
 
@@ -69,10 +77,16 @@ class MongoDbQuery(Query):
         artists = self.db['artists']
         return pd.DataFrame(list(artists.find().limit(LIMIT)))
 
+    def select_from_demand_game(self):
+        return self.select_from_games(self)
+
 
 class RedisQuery(Query):
     def select_from_games(self):
         return pd.DataFrame()
 
     def select_from_artists(self):
+        return pd.DataFrame()
+
+    def select_from_demand_game(self):
         return pd.DataFrame()
