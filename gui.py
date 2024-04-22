@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+import time
 
 from queries import MySqlQuery, SqliteQuery, MongoDbQuery, RedisQuery, Query
 
@@ -41,6 +42,11 @@ class GUI:
         query_menu = ttk.Combobox(frame1, textvariable=self.query_var, values=QUERIES_LABELS)
         query_menu.grid(row=1, column=1, sticky='ew', padx=10, pady=10)
 
+        timer_label = tk.Label(frame1, text="Execute time:")
+        timer_label.grid(row=2, column=0, sticky='w', padx=10, pady=10)
+        self.timer_value_label = tk.Label(frame1)
+        self.timer_value_label.grid(row=2, column=1, sticky='w', padx=10, pady=10)
+        
         execute_button = tk.Button(root, text="Execute Query", command=self.execute_query)
         execute_button.pack(pady=20)
 
@@ -62,10 +68,13 @@ class GUI:
         root.mainloop()
 
     def execute_query(self):
+        start_time = time.time()
         db = self.databases[self.database_var.get()]
         query = QUERIES_DICT[self.query_var.get()]
         result = getattr(db, query)()
         self.show_result(result)
+        end_time = time.time()
+        self.timer_value_label.config(text = '{:.4f}'.format(end_time-start_time))
 
     def show_result(self, result):
         self.result_table.delete(*self.result_table.get_children())
