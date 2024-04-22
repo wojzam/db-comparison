@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 import pandas as pd
+import redis
 from pymongo import MongoClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -23,6 +24,7 @@ class Query(ABC):
     @abstractmethod
     def select_from_demand_game(self):
         pass
+
 
 class SqlQuery(Query):
     def __init__(self):
@@ -71,23 +73,34 @@ class MongoDbQuery(Query):
 
     def select_from_games(self):
         games = self.db['games']
-        return pd.DataFrame(list(games.find().limit(LIMIT)))
+        return pd.DataFrame(games.find().limit(LIMIT))
 
     def select_from_artists(self):
         artists = self.db['artists']
-        return pd.DataFrame(list(artists.find().limit(LIMIT)))
+        return pd.DataFrame(artists.find().limit(LIMIT))
 
     def select_from_demand_game(self):
         games = self.db['games']
-        return pd.DataFrame(list(games.find().limit(LIMIT)))
+        return pd.DataFrame(games.find().limit(LIMIT))
 
 
 class RedisQuery(Query):
+    def __init__(self):
+        self.r = redis.Redis(host='localhost', port=6379, db=0)
+
+    def get_all(self, match):
+        data = []
+        for i, key in enumerate(self.r.scan_iter(match)):
+            if i >= LIMIT:
+                break
+            data.append(self.r.hgetall(key))
+        return pd.DataFrame(data)
+
     def select_from_games(self):
-        return pd.DataFrame()
+        return self.get_all('game:*')
 
     def select_from_artists(self):
-        return pd.DataFrame()
+        return self.get_all('artist:*')
 
     def select_from_demand_game(self):
-        return pd.DataFrame()
+        return self.get_all('game:*')
