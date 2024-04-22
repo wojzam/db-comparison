@@ -4,9 +4,10 @@ import pandas as pd
 import redis
 from pymongo import MongoClient
 from sqlalchemy import create_engine
+from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 
-from sql_tables import Games, Artists, Demand
+from sql_tables import Games, Artists, Demand, GamesArtists
 
 LIMIT = 1000
 
@@ -27,6 +28,10 @@ class Query(ABC):
 
     @abstractmethod
     def list_demand_with_game_name(self):
+        pass
+
+    @abstractmethod
+    def list_game_artists(self):
         pass
 
 
@@ -54,6 +59,11 @@ class SqlQuery(Query):
 
     def list_demand_with_game_name(self):
         return self.execute_query(lambda s: s.query(Demand, Games.Name).join(Games))
+
+    def list_game_artists(self):
+        return self.execute_query(
+            lambda s: s.query(Games.Name, func.group_concat(Artists.Name).label('Artists')).select_from(Games).join(
+                GamesArtists).join(Artists).group_by(Games.Name))
 
 
 class MySqlQuery(SqlQuery):
@@ -93,6 +103,9 @@ class MongoDbQuery(Query):
     def list_demand_with_game_name(self):
         return self.get_all('games', {}, {'Demand': 1, 'Name': 1, '_id': 0})
 
+    def list_game_artists(self):
+        pass
+
 
 class RedisQuery(Query):
     def __init__(self):
@@ -120,3 +133,6 @@ class RedisQuery(Query):
 
     def list_demand_with_game_name(self):
         return self.get_all('game:*', ['Name', 'Demand'])
+
+    def list_game_artists(self):
+        pass
