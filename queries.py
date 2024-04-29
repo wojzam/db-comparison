@@ -115,7 +115,7 @@ class RedisQuery(Query):
     def get_all(self, match, fields=None):
         pipe = self.r.pipeline()
 
-        for key in itertools.islice(self.r.scan_iter(match, count=LIMIT//2), LIMIT):
+        for key in itertools.islice(self.r.scan_iter(match), LIMIT):
             if fields:
                 pipe.hmget(key, fields)
             else:
