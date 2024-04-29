@@ -1,3 +1,4 @@
+import itertools
 from abc import ABC, abstractmethod
 
 import pandas as pd
@@ -109,18 +110,19 @@ class MongoDbQuery(Query):
 
 class RedisQuery(Query):
     def __init__(self):
-        self.r = redis.Redis(host='localhost', port=6379, db=0)
+        self.r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
     def get_all(self, match, fields=None):
-        data = []
-        for i, key in enumerate(self.r.scan_iter(match)):
-            if i >= LIMIT:
-                break
+        pipe = self.r.pipeline()
+
+        for key in itertools.islice(self.r.scan_iter(match, count=LIMIT//2), LIMIT):
             if fields:
-                data.append({field: self.r.hget(key, field) for field in fields})
+                pipe.hmget(key, fields)
             else:
-                data.append(self.r.hgetall(key))
-        return pd.DataFrame(data)
+                pipe.hgetall(key)
+
+        data = pd.DataFrame(pipe.execute())
+        return data
 
     def list_games(self):
         return self.get_all('game:*')
