@@ -115,13 +115,15 @@ class RedisQuery(Query):
     def get_all(self, match, fields=None):
         pipe = self.r.pipeline()
 
-        for key in itertools.islice(self.r.scan_iter(match, count=LIMIT//2), LIMIT):
+        for key in itertools.islice(self.r.scan_iter(match, count=LIMIT // 2), LIMIT):
             if fields:
                 pipe.hmget(key, fields)
             else:
                 pipe.hgetall(key)
 
         data = pd.DataFrame(pipe.execute())
+        if fields:
+            data.columns = fields
         return data
 
     def list_games(self):
@@ -137,4 +139,13 @@ class RedisQuery(Query):
         return self.get_all('game:*', ['Name', 'Demand'])
 
     def list_game_artists(self):
-        pass
+        games = self.get_all("game:*", ['Name', 'ArtistIds'])
+        games['Artists'] = games['ArtistIds'].apply(self.get_artist_names)
+        games.drop(columns=['ArtistIds'], inplace=True)
+
+        return games
+
+    def get_artist_names(self, ids):
+        id_list = ids[1:-1].split(",")
+        return [self.r.hget(f"artist:{int(float(x))}", "Name") if x != 'NaN' else "" for x in id_list]
+
