@@ -148,4 +148,3 @@ class RedisQuery(Query):
     def get_artist_names(self, ids):
         id_list = ids[1:-1].split(",")
         return [self.r.hget(f"artist:{int(float(x))}", "Name") if x != 'NaN' else "" for x in id_list]
-
