@@ -1,22 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
 
-from analysis import result_timed, show_time_comparison_plot
-from queries import MySqlQuery, SqliteQuery, MongoDbQuery, RedisQuery, Query
-
-MYSQL = "MySql"
-SQLITE = "Sqlite"
-MONGODB = "MongoDb"
-REDIS = "Redis"
-
-DATABASES_LABELS = [MYSQL, SQLITE, MONGODB, REDIS]
-QUERIES = sorted([q for q in dir(Query) if callable(getattr(Query, q)) and not q.startswith("__")], key=len)
-QUERIES_LABELS = [q.replace("_", " ").upper() for q in QUERIES]
-QUERIES_DICT = dict(zip(QUERIES_LABELS, QUERIES))
+from model import Model, DATABASES_LABELS, QUERIES_LABELS
 
 
 class GUI:
-    databases = {MYSQL: MySqlQuery(), SQLITE: SqliteQuery(), MONGODB: MongoDbQuery(), REDIS: RedisQuery()}
+    model = Model()
 
     def __init__(self):
         root = tk.Tk()
@@ -74,18 +63,12 @@ class GUI:
         root.mainloop()
 
     def execute_query(self):
-        db = self.databases[self.database_var.get()]
-        query = QUERIES_DICT[self.query_var.get()]
-        # TODO Move this logic to model
-        result, avg_time, std_time = result_timed(getattr(db, query))
+        result, avg_time, std_time = self.model.execute_query(self.database_var.get(), self.query_var.get())
         self.show_result(result)
         self.timer_value_label.config(text='{:.4f} ± {:.4f}s'.format(avg_time, std_time))
 
     def benchmark_query(self):
-        query = QUERIES_DICT[self.query_var.get()]
-        # TODO Move this logic to model
-        results = {name: result_timed(getattr(db, query), 20)[1:] for name, db in self.databases.items()}
-        show_time_comparison_plot(self.query_var.get(), results)
+        self.model.benchmark_query(self.query_var.get())
 
     def show_result(self, result):
         self.result_table.delete(*self.result_table.get_children())
