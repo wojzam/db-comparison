@@ -1,4 +1,4 @@
-from analysis import result_timed, show_time_comparison_plot
+from analysis import result_timed, varied_limits_results, show_time_comparison_plot
 from queries import MySqlQuery, SqliteQuery, MongoDbQuery, RedisQuery, Query
 
 MYSQL = "MySql"
@@ -22,5 +22,5 @@ class Model:
 
     def benchmark_query(self, query_label):
         query = QUERIES_DICT[query_label]
-        results = {name: result_timed(getattr(db, query), 20)[1:] for name, db in self.databases.items()}
+        results = {name: varied_limits_results(db, query) for name, db in self.databases.items()}
         show_time_comparison_plot(query_label, results)
