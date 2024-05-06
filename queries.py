@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from sql_tables import Games, Artists, Demand, GamesArtists
 
-LIMIT = 1000
+DEFAULT_LIMIT = 100
 
 
 class Query(ABC):
@@ -37,8 +37,9 @@ class Query(ABC):
 
 
 class SqlQuery(Query):
-    def __init__(self):
-        self.engine = create_engine(self.get_db_url(), echo=True)
+    def __init__(self, limit=DEFAULT_LIMIT):
+        self.engine = create_engine(self.get_db_url())
+        self.limit = limit
 
     @abstractmethod
     def get_db_url(self) -> str:
@@ -46,7 +47,7 @@ class SqlQuery(Query):
 
     def execute_query(self, query):
         with sessionmaker(bind=self.engine)() as session:
-            statement = query(session).limit(LIMIT).statement
+            statement = query(session).limit(self.limit).statement
             return pd.read_sql(statement, session.bind)
 
     def list_games(self):
@@ -84,13 +85,14 @@ class SqliteQuery(SqlQuery):
 
 
 class MongoDbQuery(Query):
-    def __init__(self):
+    def __init__(self, limit=DEFAULT_LIMIT):
         client = MongoClient('mongodb://localhost:27017/')
         self.db = client['boardgameDB']
+        self.limit = limit
 
     def get_all(self, collection, *args):
         games = self.db[collection]
-        return pd.DataFrame(games.find(*args).limit(LIMIT))
+        return pd.DataFrame(games.find(*args).limit(self.limit))
 
     def list_games(self):
         return self.get_all('games')
@@ -109,13 +111,14 @@ class MongoDbQuery(Query):
 
 
 class RedisQuery(Query):
-    def __init__(self):
+    def __init__(self, limit=DEFAULT_LIMIT):
         self.r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+        self.limit = limit
 
     def get_all(self, match, fields=None):
         pipe = self.r.pipeline()
 
-        for key in itertools.islice(self.r.scan_iter(match, count=LIMIT // 2), LIMIT):
+        for key in itertools.islice(self.r.scan_iter(match, count=max(1, self.limit // 2)), self.limit):
             if fields:
                 pipe.hmget(key, fields)
             else:
