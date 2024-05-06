@@ -6,6 +6,7 @@ from utils_nosql import get_games_with_embedded_data
 
 def insert_collection(df, name):
     collection = db[name]
+    collection.drop()
     df.rename(columns={df.columns[0]: "_id"}, inplace=True)
     collection.insert_many(df.to_dict(orient='records'))
     print(f"Imported {name}")
