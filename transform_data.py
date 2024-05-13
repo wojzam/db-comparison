@@ -3,8 +3,8 @@ from file_manager import *
 BGG_ID = 'BGGId'
 
 
-def columns_to_rows(filename, new_filename, main_column_name, id_column_name='id'):
-    old_table = read_data(filename, SOURCE_DIRECTORY)
+def columns_to_rows(filename, new_filename, main_column_name, id_column_name='id', directory=SOURCE_DIRECTORY):
+    old_table = read_data(filename, directory)
     old_columns = old_table.columns.values.tolist()
     old_columns.remove(BGG_ID)
 
@@ -29,32 +29,38 @@ def create_relation_table(old_table, new_filename, id_column_name):
     save_to_file(pd.DataFrame(relations, columns=[BGG_ID, id_column_name]), "GAMES_" + new_filename)
 
 
-games_table = read_data("games", SOURCE_DIRECTORY)
+def transform(directory=SOURCE_DIRECTORY):
+    print("Transforming data...")
+    games_table = read_data("games", directory)
 
-extract_ratings = ['BGGId', 'GameWeight', 'AvgRating', 'BayesAvgRating', 'StdDev', 'NumUserRatings', 'NumComments']
-save_to_file(games_table[extract_ratings], "RATINGS")
+    extract_ratings = ['BGGId', 'GameWeight', 'AvgRating', 'BayesAvgRating', 'StdDev', 'NumUserRatings', 'NumComments']
+    save_to_file(games_table[extract_ratings], "RATINGS")
 
-extract_demand = ['BGGId', 'NumOwned', 'NumWant', 'NumWish']
-save_to_file(games_table[extract_demand], "DEMAND")
+    extract_demand = ['BGGId', 'NumOwned', 'NumWant', 'NumWish']
+    save_to_file(games_table[extract_demand], "DEMAND")
 
-to_drop = ['GameWeight', 'AvgRating', 'BayesAvgRating', 'StdDev', 'NumUserRatings', 'NumComments', 'NumOwned',
-           'NumWant', 'NumWish', 'BestPlayers', 'GoodPlayers', 'NumWeightVotes', 'Family', 'Kickstarted', 'ImagePath',
-           'Rank:boardgame', 'Rank:strategygames', 'Rank:abstracts', 'Rank:familygames', 'Rank:thematic', 'Rank:cgs',
-           'Rank:wargames', 'Rank:partygames', 'Rank:childrensgames', 'Cat:Thematic', 'Cat:Strategy', 'Cat:War',
-           'Cat:Family', 'Cat:CGS', 'Cat:Abstract', 'Cat:Party', 'Cat:Childrens']
-games_table.drop(to_drop, inplace=True, axis=1)
+    to_drop = ['GameWeight', 'AvgRating', 'BayesAvgRating', 'StdDev', 'NumUserRatings', 'NumComments', 'NumOwned',
+               'NumWant', 'NumWish', 'BestPlayers', 'GoodPlayers', 'NumWeightVotes', 'Family', 'Kickstarted',
+               'ImagePath',
+               'Rank:boardgame', 'Rank:strategygames', 'Rank:abstracts', 'Rank:familygames', 'Rank:thematic',
+               'Rank:cgs',
+               'Rank:wargames', 'Rank:partygames', 'Rank:childrensgames', 'Cat:Thematic', 'Cat:Strategy', 'Cat:War',
+               'Cat:Family', 'Cat:CGS', 'Cat:Abstract', 'Cat:Party', 'Cat:Childrens']
+    games_table.drop(to_drop, inplace=True, axis=1)
 
-games_table['Description'].fillna('', inplace=True)
-games_table['ComAgeRec'].fillna(0, inplace=True)
-games_table['LanguageEase'].fillna(0, inplace=True)
+    games_table['Description'].fillna('', inplace=True)
+    games_table['ComAgeRec'].fillna(0, inplace=True)
+    games_table['LanguageEase'].fillna(0, inplace=True)
 
-save_to_file(games_table, "GAMES")
+    save_to_file(games_table, "GAMES")
 
-columns_to_rows('artists_reduced', 'ARTISTS', 'Name', 'ArtistId')
-columns_to_rows('designers_reduced', 'DESIGNERS', 'Name', 'DesignerId')
-columns_to_rows('publishers_reduced', 'PUBLISHERS', 'Name', 'PublisherId')
-columns_to_rows('themes', 'THEMES', 'Name', 'ThemeId')
-columns_to_rows('mechanics', 'MECHANICS', 'Name', 'MechanicId')
-columns_to_rows('subcategories', 'SUBCATEGORIES', 'Name', 'SubcategoryId')
+    columns_to_rows('artists_reduced', 'ARTISTS', 'Name', 'ArtistId')
+    columns_to_rows('designers_reduced', 'DESIGNERS', 'Name', 'DesignerId')
+    columns_to_rows('publishers_reduced', 'PUBLISHERS', 'Name', 'PublisherId')
+    columns_to_rows('themes', 'THEMES', 'Name', 'ThemeId')
+    columns_to_rows('mechanics', 'MECHANICS', 'Name', 'MechanicId')
+    columns_to_rows('subcategories', 'SUBCATEGORIES', 'Name', 'SubcategoryId')
 
-os.system(f'copy {SOURCE_DIRECTORY}\\user_ratings.csv {DATA_DIRECTORY}\\USER_RATINGS.csv')
+
+if __name__ == "__main__":
+    transform()

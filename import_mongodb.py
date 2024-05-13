@@ -4,7 +4,7 @@ from file_manager import *
 from utils_nosql import get_games_with_embedded_data
 
 
-def insert_collection(df, name):
+def insert_collection(db, df, name):
     collection = db[name]
     collection.drop()
     df.rename(columns={df.columns[0]: "_id"}, inplace=True)
@@ -12,16 +12,20 @@ def insert_collection(df, name):
     print(f"Imported {name}")
 
 
-client = MongoClient('mongodb://localhost:27017/')
-db = client['boardgameDB']
+def import_mongodb():
+    client = MongoClient('mongodb://localhost:27017/')
+    db = client['boardgameDB']
 
-games = get_games_with_embedded_data()
+    games = get_games_with_embedded_data()
 
-insert_collection(games, 'games')
-insert_collection(read_data('ARTISTS'), 'artists')
-insert_collection(read_data('DESIGNERS'), 'designers')
-insert_collection(read_data('PUBLISHERS'), 'publishers')
-insert_collection(read_data('THEMES'), 'themes')
-insert_collection(read_data('MECHANICS'), 'mechanics')
-insert_collection(read_data('SUBCATEGORIES'), 'subcategories')
-# insert_collection(read_data('USER_RATINGS'), 'userRatings')
+    insert_collection(db, games, 'games')
+    insert_collection(db, read_data('ARTISTS'), 'artists')
+    insert_collection(db, read_data('DESIGNERS'), 'designers')
+    insert_collection(db, read_data('PUBLISHERS'), 'publishers')
+    insert_collection(db, read_data('THEMES'), 'themes')
+    insert_collection(db, read_data('MECHANICS'), 'mechanics')
+    insert_collection(db, read_data('SUBCATEGORIES'), 'subcategories')
+
+
+if __name__ == "__main__":
+    import_mongodb()
