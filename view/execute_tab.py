@@ -1,11 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
 
-from model import DATABASES_LABELS, QUERIES_LABELS
+from model import Model, DATABASES_LABELS, QUERIES_LABELS
 
 
 class ExecuteTab(tk.Frame):
-    def __init__(self, master, model, *args, **kwargs):
+    def __init__(self, master, model: Model, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.model = model
 

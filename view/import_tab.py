@@ -2,13 +2,13 @@ import tkinter as tk
 import webbrowser
 from tkinter import ttk, filedialog
 
-from model import DATABASES_LABELS
+from model import Model, DATABASES_LABELS
 
 
 class ImportTab(tk.Frame):
     source_url = "https://www.kaggle.com/datasets/threnjen/board-games-database-from-boardgamegeek"
 
-    def __init__(self, master, model, *args, **kwargs):
+    def __init__(self, master, model: Model, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.model = model
 

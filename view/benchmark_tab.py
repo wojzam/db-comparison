@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from analysis import TEST_ITERATIONS
-from model import QUERIES_LABELS
+from model import Model, QUERIES_LABELS
 from view.input import IntInput
 
 OPERATIONS = ["Query:", "Create", "Update", "Delete"]
@@ -10,7 +10,7 @@ MAX_ROWS = [10, 100, 1000, 5000, 10000, 50000]
 
 
 class BenchmarkTab(tk.Frame):
-    def __init__(self, master, model, *args, **kwargs):
+    def __init__(self, master, model: Model, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.model = model
 
