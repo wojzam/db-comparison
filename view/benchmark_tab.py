@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-from analysis import TEST_ITERATIONS
+from analysis import DEFAULT_ITERATIONS
 from model import Model, QUERIES_LABELS
 from view.input import IntInput
 
@@ -37,7 +37,8 @@ class BenchmarkTab(tk.Frame):
         frame_settings.pack(padx=10, pady=10, fill=tk.X)
 
         tk.Label(frame_settings, text="Test Iterations:").grid(row=0, column=0, sticky='w', padx=10, pady=10)
-        self.test_iterations_input = IntInput(frame_settings, min_value=0, max_value=999, default_value=TEST_ITERATIONS)
+        self.test_iterations_input = IntInput(frame_settings, min_value=0, max_value=999,
+                                              default_value=DEFAULT_ITERATIONS)
         self.test_iterations_input.grid(row=0, column=1, sticky='w', padx=10, pady=10)
 
         tk.Label(frame_settings, text="Max Rows Affected:").grid(row=1, column=0, sticky='w', padx=10, pady=10)

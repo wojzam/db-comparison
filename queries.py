@@ -76,33 +76,33 @@ class SqlQuery(Query):
     def get_db_url(self) -> str:
         pass
 
-    def execute_query(self, query):
+    def execute_select(self, query):
         with sessionmaker(bind=self.engine)() as session:
             statement = query(session).limit(self.limit).statement
             return pd.read_sql(statement, session.bind)
 
     def list_games(self):
-        return self.execute_query(lambda s: s.query(Games))
+        return self.execute_select(lambda s: s.query(Games))
 
     def list_games_names(self):
-        return self.execute_query(lambda s: s.query(Games.Name))
+        return self.execute_select(lambda s: s.query(Games.Name))
 
     def list_singleplayer_games_with_ratings(self):
-        return self.execute_query(lambda s: s.query(Games, Ratings).join(Ratings).where(Games.MinPlayers == 1))
+        return self.execute_select(lambda s: s.query(Games, Ratings).join(Ratings).where(Games.MinPlayers == 1))
 
     def list_artists_names(self):
-        return self.execute_query(lambda s: s.query(Artists.Name))
+        return self.execute_select(lambda s: s.query(Artists.Name))
 
     def list_demand_with_game_name(self):
-        return self.execute_query(lambda s: s.query(Demand, Games.Name).join(Games))
+        return self.execute_select(lambda s: s.query(Demand, Games.Name).join(Games))
 
     def list_game_artists(self):
-        return self.execute_query(
+        return self.execute_select(
             lambda s: s.query(Games.Name, func.group_concat(Artists.Name).label('Artists')).select_from(Games).join(
                 GamesArtists).join(Artists).group_by(Games.Name))
 
     def list_games_with_possible_zero_players(self):
-        return self.execute_query(lambda s: s.query(Games).where(Games.MinPlayers == 0))
+        return self.execute_select(lambda s: s.query(Games).where(Games.MinPlayers == 0))
 
     # TODO
     def delete_games_with_possible_zero_players(self):

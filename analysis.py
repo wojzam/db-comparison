@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 DEFAULT_ITERATIONS = 5
-TEST_ITERATIONS = 10
 DEFAULT_MAX_ROWS = 1000
+DEFAULT_LIMIT_COUNT = 10
 
 
 def varied_limits_results(db, func, func_before=lambda: None, func_after=lambda: None,
@@ -56,8 +56,8 @@ def show_time_comparison_plot(title: str, results: dict):
     plt.show()
 
 
-def generate_limits_list(max_limit):
-    limits = [int(x) for x in np.linspace(max_limit / 10, max_limit, 10, dtype=int)]
+def generate_limits_list(max_limit, count=DEFAULT_LIMIT_COUNT):
+    limits = [int(x) for x in np.linspace(max_limit / count, max_limit, count, dtype=int)]
     if 100 < np.min(limits):
         limits = [100] + limits
     return limits
