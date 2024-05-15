@@ -28,23 +28,23 @@ class Model:
         query = QUERIES_DICT[query_label]
         return result_timed(getattr(db, query))
 
-    def benchmark_query(self, query_label, max_rows, iterations):
+    def benchmark_query(self, query_label, db_labels, max_rows, iterations):
         query = QUERIES_DICT[query_label]
         results = {name: varied_limits_results(db, getattr(db, query), max_rows=max_rows, iterations=iterations)
-                   for name, db in self.databases.items()}
+                   for name, db in self._filter_databases(db_labels)}
         show_time_comparison_plot(query_label, results)
 
-    def benchmark_create(self, max_rows, iterations):
+    def benchmark_create(self, db_labels, max_rows, iterations):
         users = self._generate_users(max_rows)
         results = {name: varied_limits_results(db,
                                                func=lambda: db._create_users(users),
                                                func_after=lambda: db._delete_users(),
                                                max_rows=max_rows,
                                                iterations=iterations)
-                   for name, db in self.databases.items()}
+                   for name, db in self._filter_databases(db_labels)}
         show_time_comparison_plot("Create", results)
 
-    def benchmark_update(self, max_rows, iterations):
+    def benchmark_update(self, db_labels, max_rows, iterations):
         users = self._generate_users(max_rows)
         results = {name: varied_limits_results(db,
                                                func_before=lambda: db._create_users(users),
@@ -52,17 +52,17 @@ class Model:
                                                func_after=lambda: db._delete_users(),
                                                max_rows=max_rows,
                                                iterations=iterations)
-                   for name, db in self.databases.items()}
+                   for name, db in self._filter_databases(db_labels)}
         show_time_comparison_plot("Update", results)
 
-    def benchmark_delete(self, max_rows, iterations):
+    def benchmark_delete(self, db_labels, max_rows, iterations):
         users = self._generate_users(max_rows)
         results = {name: varied_limits_results(db,
                                                func_before=lambda: db._create_users(users),
                                                func=lambda: db._delete_users(),
                                                max_rows=max_rows,
                                                iterations=iterations)
-                   for name, db in self.databases.items()}
+                   for name, db in self._filter_databases(db_labels)}
         show_time_comparison_plot("Delete", results)
 
     def _generate_users(self, count):
@@ -70,6 +70,9 @@ class Model:
             users = read_data("USERS", max_rows=count)
             self.users_cache = users.sample(n=count, replace=True)
         return self.users_cache.head(count)
+
+    def _filter_databases(self, db_labels):
+        return [(label, self.databases[label]) for label in db_labels]
 
     @staticmethod
     def transform_data(source_directory):

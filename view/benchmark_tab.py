@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from analysis import DEFAULT_ITERATIONS
-from model import Model, QUERIES_LABELS
+from model import Model, QUERIES_LABELS, DATABASES_LABELS
 from view.input import IntInput
 
 OPERATIONS = ["Query:", "Create", "Update", "Delete"]
@@ -14,6 +14,8 @@ class BenchmarkTab(tk.Frame):
         super().__init__(master, *args, **kwargs)
         self.model = model
 
+        self.database_vars = []
+
         self.operation_var = tk.StringVar()
         self.operation_var.set(OPERATIONS[0])
 
@@ -22,6 +24,15 @@ class BenchmarkTab(tk.Frame):
 
         self.max_rows_var = tk.IntVar()
         self.max_rows_var.set(MAX_ROWS[2])
+
+        frame_checkboxes = ttk.LabelFrame(self, text="Select Databases")
+        frame_checkboxes.pack(padx=10, pady=10, fill=tk.X)
+
+        for label in DATABASES_LABELS:
+            var = tk.BooleanVar(value=True)
+            self.database_vars.append(var)
+            checkbox = tk.Checkbutton(frame_checkboxes, text=label, variable=var, onvalue=True, offvalue=False)
+            checkbox.pack(padx=10, pady=10, side="left")
 
         frame_operation = ttk.LabelFrame(self, text="Select Operation")
         frame_operation.pack(padx=10, pady=10, fill=tk.X)
@@ -54,12 +65,14 @@ class BenchmarkTab(tk.Frame):
     def benchmark_query(self):
         match self.operation_var.get():
             case "Create":
-                self.model.benchmark_create(self.max_rows_var.get(), self.test_iterations_input.get_value())
+                self.model.benchmark_create(*self.get_all_parameters())
             case "Update":
-                self.model.benchmark_update(self.max_rows_var.get(), self.test_iterations_input.get_value())
+                self.model.benchmark_update(*self.get_all_parameters())
             case "Delete":
-                self.model.benchmark_delete(self.max_rows_var.get(), self.test_iterations_input.get_value())
+                self.model.benchmark_delete(*self.get_all_parameters())
             case _:
-                self.model.benchmark_query(self.query_var.get(),
-                                           self.max_rows_var.get(),
-                                           self.test_iterations_input.get_value())
+                self.model.benchmark_query(self.query_var.get(), *self.get_all_parameters())
+
+    def get_all_parameters(self):
+        included_db_labels = [d for v, d in zip(self.database_vars, DATABASES_LABELS) if v.get()]
+        return included_db_labels, self.max_rows_var.get(), self.test_iterations_input.get_value()
