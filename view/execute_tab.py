@@ -62,8 +62,9 @@ class ExecuteTab(tk.Frame):
 
     def show_result(self, result):
         self.result_table.delete(*self.result_table.get_children())
-        self.result_table["columns"] = list(result.columns)
-        for column in self.result_table["columns"]:
-            self.result_table.heading(column, text=column)
-        for index, row in result.iterrows():
-            self.result_table.insert("", "end", values=list(row))
+        if result:
+            self.result_table["columns"] = list(result.columns)
+            for column in self.result_table["columns"]:
+                self.result_table.heading(column, text=column)
+            for index, row in result.iterrows():
+                self.result_table.insert("", "end", values=list(row))
