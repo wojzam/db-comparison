@@ -8,18 +8,29 @@ TEST_ITERATIONS = 10
 DEFAULT_MAX_ROWS = 1000
 
 
-def varied_limits_results(db, query, max_rows=DEFAULT_MAX_ROWS, test_iterations=TEST_ITERATIONS):
-    mean_times = []
-    std_times = []
-    initial_limit = db.limit
+def varied_limits_results(db, func, func_before=lambda: None, func_after=lambda: None,
+                          max_rows=DEFAULT_MAX_ROWS, iterations=DEFAULT_ITERATIONS):
+    mean_times, std_times = [], []
     limits = generate_limits_list(max_rows)
+    initial_limit = db.limit
     for limit in limits:
         db.limit = limit
-        mean, std = result_timed(getattr(db, query), test_iterations)[1:]
+        mean, std = timed_with_hooks(func, func_after, func_before, iterations)
         mean_times.append(mean)
         std_times.append(std)
     db.limit = initial_limit
     return limits, mean_times, std_times
+
+
+def timed_with_hooks(func, func_after, func_before, iterations):
+    times = []
+    for _ in range(iterations):
+        func_before()
+        start_time = time.time()
+        func()
+        times.append(time.time() - start_time)
+        func_after()
+    return np.mean(times), np.std(times)
 
 
 def result_timed(func, iterations=DEFAULT_ITERATIONS):

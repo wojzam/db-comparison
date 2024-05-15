@@ -128,3 +128,9 @@ class GamesMechanics(Base):
     __tablename__ = 'games_mechanics'
     BGGId = Column(Integer, ForeignKey('games.BGGId'), primary_key=True)
     MechanicId = Column(Integer, ForeignKey('mechanics.MechanicId'), primary_key=True)
+
+
+class Users(Base):
+    __tablename__ = 'users'
+    UserId = Column(Integer, primary_key=True, autoincrement=True)
+    Username = Column(String(255))

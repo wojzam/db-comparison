@@ -4,11 +4,10 @@ from abc import ABC, abstractmethod
 import pandas as pd
 import redis
 from pymongo import MongoClient
-from sqlalchemy import create_engine
-from sqlalchemy import func
+from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 
-from sql_tables import Games, Artists, Demand, GamesArtists, Ratings
+from sql_tables import Games, Artists, Demand, GamesArtists, Ratings, Users
 
 DEFAULT_LIMIT = 100
 
@@ -53,6 +52,18 @@ class Query(ABC):
 
     @abstractmethod
     def change_date_2020_to_2021(self):
+        pass
+
+    @abstractmethod
+    def _create_users(self, users):
+        pass
+
+    @abstractmethod
+    def _update_users(self):
+        pass
+
+    @abstractmethod
+    def _delete_users(self):
         pass
 
 
@@ -102,6 +113,22 @@ class SqlQuery(Query):
 
     def change_date_2020_to_2021(self):
         pass
+
+    def _create_users(self, users):
+        with sessionmaker(bind=self.engine)() as session:
+            for _, row in users.head(self.limit).iterrows():
+                session.add(Users(Username=row['Username']))
+            session.commit()
+
+    def _update_users(self):
+        with sessionmaker(bind=self.engine)() as session:
+            session.query(Users).update({Users.Username: Users.Username + "0"})
+            session.commit()
+
+    def _delete_users(self):
+        with sessionmaker(bind=self.engine)() as session:
+            session.query(Users).delete()
+            session.commit()
 
 
 class MySqlQuery(SqlQuery):
@@ -167,6 +194,15 @@ class MongoDbQuery(Query):
     def list_game_artists(self):
         pass
 
+    def _create_users(self, users):
+        pass
+
+    def _update_users(self):
+        pass
+
+    def _delete_users(self):
+        pass
+
 
 class RedisQuery(Query):
     def __init__(self, limit=DEFAULT_LIMIT):
@@ -224,4 +260,13 @@ class RedisQuery(Query):
         pass
 
     def change_date_2020_to_2021(self):
+        pass
+
+    def _create_users(self, users):
+        pass
+
+    def _update_users(self):
+        pass
+
+    def _delete_users(self):
         pass

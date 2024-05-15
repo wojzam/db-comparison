@@ -51,10 +51,14 @@ class BenchmarkTab(tk.Frame):
         benchmark_button.pack(pady=20)
 
     def benchmark_query(self):
-        if self.operation_var.get() == "Query:":
-            self.model.benchmark_query(self.query_var.get(),
-                                       self.max_rows_var.get(),
-                                       self.test_iterations_input.get_value())
-        else:
-            # TODO Implement simple create, update and delete queries
-            print(self.operation_var.get())
+        match self.operation_var.get():
+            case "Create":
+                self.model.benchmark_create(self.max_rows_var.get(), self.test_iterations_input.get_value())
+            case "Update":
+                self.model.benchmark_update(self.max_rows_var.get(), self.test_iterations_input.get_value())
+            case "Delete":
+                self.model.benchmark_delete(self.max_rows_var.get(), self.test_iterations_input.get_value())
+            case _:
+                self.model.benchmark_query(self.query_var.get(),
+                                           self.max_rows_var.get(),
+                                           self.test_iterations_input.get_value())

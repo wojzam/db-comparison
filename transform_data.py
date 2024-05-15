@@ -65,9 +65,8 @@ def transform(directory=SOURCE_DIRECTORY):
     columns_to_rows('mechanics', 'MECHANICS', 'Name', 'MechanicId')
     columns_to_rows('subcategories', 'SUBCATEGORIES', 'Name', 'SubcategoryId')
 
-    user_ratings = read_data("user_ratings", directory, 10000)
-    user_ratings = add_id_column(user_ratings, "UserId")
-    save_to_file(user_ratings[["UserId", "Username"]], "USERS")
+    user_ratings = read_data("user_ratings", directory, 1000)
+    save_to_file(user_ratings[["Username"]], "USERS")
 
 
 if __name__ == "__main__":
