@@ -6,8 +6,8 @@ DATA_DIRECTORY = 'data'
 SOURCE_DIRECTORY = 'source'
 
 
-def read_data(filename, directory=DATA_DIRECTORY):
-    return pd.read_csv(os.path.join(directory, f'{filename}.csv'))
+def read_data(filename, directory=DATA_DIRECTORY, max_rows=None):
+    return pd.read_csv(os.path.join(directory, f'{filename}.csv'), nrows=max_rows)
 
 
 def save_to_file(data, filename, directory=DATA_DIRECTORY):

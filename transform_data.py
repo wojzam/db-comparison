@@ -9,13 +9,17 @@ def columns_to_rows(filename, new_filename, main_column_name, id_column_name='id
     old_columns.remove(BGG_ID)
 
     new_table = pd.DataFrame(old_columns, columns=[main_column_name])
-    new_table[id_column_name] = new_table.reset_index(drop=True).index + 1
+    new_table = add_id_column(new_table, id_column_name)
 
-    new_columns = new_table.columns.values.tolist()
-    new_columns = new_columns[-1:] + new_columns[:-1]
-
-    save_to_file(new_table[new_columns], new_filename)
+    save_to_file(new_table, new_filename)
     create_relation_table(old_table, new_filename, id_column_name)
+
+
+def add_id_column(df, id_column_name):
+    df[id_column_name] = df.reset_index(drop=True).index + 1
+    new_columns = df.columns.values.tolist()
+    df = df[new_columns[-1:] + new_columns[:-1]]
+    return df
 
 
 def create_relation_table(old_table, new_filename, id_column_name):
@@ -60,6 +64,10 @@ def transform(directory=SOURCE_DIRECTORY):
     columns_to_rows('themes', 'THEMES', 'Name', 'ThemeId')
     columns_to_rows('mechanics', 'MECHANICS', 'Name', 'MechanicId')
     columns_to_rows('subcategories', 'SUBCATEGORIES', 'Name', 'SubcategoryId')
+
+    user_ratings = read_data("user_ratings", directory, 10000)
+    user_ratings = add_id_column(user_ratings, "UserId")
+    save_to_file(user_ratings[["UserId", "Username"]], "USERS")
 
 
 if __name__ == "__main__":
