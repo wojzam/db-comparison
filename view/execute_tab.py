@@ -29,7 +29,7 @@ class ExecuteTab(tk.Frame):
 
         query_label = tk.Label(frame_menu, text="Select Query:")
         query_label.grid(row=1, column=0, sticky='w', padx=10, pady=10)
-        query_menu = ttk.Combobox(frame_menu, textvariable=self.query_var, values=QUERIES_LABELS, width=45)
+        query_menu = ttk.Combobox(frame_menu, textvariable=self.query_var, values=QUERIES_LABELS, width=50)
         query_menu.grid(row=1, column=1, sticky='ew', padx=10, pady=10)
 
         timer_label = tk.Label(frame_menu, text="Execution time:")

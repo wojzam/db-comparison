@@ -37,7 +37,7 @@ class BenchmarkTab(tk.Frame):
         frame_operation = ttk.LabelFrame(self, text="Select Operation")
         frame_operation.pack(padx=10, pady=10, fill=tk.X)
 
-        query_menu = ttk.Combobox(frame_operation, textvariable=self.query_var, values=QUERIES_LABELS, width=45)
+        query_menu = ttk.Combobox(frame_operation, textvariable=self.query_var, values=QUERIES_LABELS, width=50)
         query_menu.grid(row=0, column=1, sticky='w')
 
         for i, op in enumerate(OPERATIONS):
