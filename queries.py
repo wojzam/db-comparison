@@ -43,6 +43,10 @@ class Query(ABC):
         pass
 
     @abstractmethod
+    def list_games_with_specific_theme_and_mechanic(self):
+        pass
+
+    @abstractmethod
     def list_games_with_possible_zero_players(self):
         pass
 
@@ -116,6 +120,20 @@ class SqlQuery(Query):
             .outerjoin(GamesArtists).outerjoin(Artists)
             .outerjoin(GamesPublishers).outerjoin(Publishers)
             .outerjoin(GamesDesigners).outerjoin(Designers)
+            .group_by(Games.Name)
+        )
+
+    def list_games_with_specific_theme_and_mechanic(self):
+        return self.execute_select(
+            lambda s: s.query(
+                Games.Name,
+                func.group_concat(Themes.Name).label('Themes'),
+                func.group_concat(Mechanics.Name).label('Mechanics')
+            ).select_from(Games)
+            .outerjoin(GamesThemes).outerjoin(Themes)
+            .outerjoin(GamesMechanics).outerjoin(Mechanics)
+            .filter(Themes.Name.ilike('%Science Fiction%'))
+            .filter(Mechanics.Name.ilike('%Cooperative Game%'))
             .group_by(Games.Name)
         )
 
@@ -215,6 +233,9 @@ class MongoDbQuery(Query):
     def list_games_with_artists_publishers_designers(self):
         pass
 
+    def list_games_with_specific_theme_and_mechanic(self):
+        pass
+
     def _create_users(self, users):
         pass
 
@@ -243,6 +264,10 @@ class RedisQuery(Query):
         if fields:
             data.columns = fields
         return data
+
+    def get_multiple_fields(self, ids, name, key="Name"):
+        id_list = ids[1:-1].split(",")
+        return [self.r.hget(f"{name}:{int(float(x))}", key) if x != 'NaN' else "" for x in id_list]
 
     def list_games(self):
         return self.get_all('game:*')
@@ -275,9 +300,15 @@ class RedisQuery(Query):
         games.drop(columns=['ArtistIds', 'PublisherIds', 'DesignerIds'], inplace=True)
         return games
 
-    def get_multiple_fields(self, ids, name, key="Name"):
-        id_list = ids[1:-1].split(",")
-        return [self.r.hget(f"{name}:{int(float(x))}", key) if x != 'NaN' else "" for x in id_list]
+    def list_games_with_specific_theme_and_mechanic(self):
+        games = self.get_all("game:*", ['Name', 'ThemeIds', 'MechanicIds'])
+
+        games['Themes'] = games['ThemeIds'].apply(lambda ids: self.get_multiple_fields(ids, "theme"))
+        games['Mechanics'] = games['MechanicIds'].apply(lambda ids: self.get_multiple_fields(ids, "mechanic"))
+
+        games.drop(columns=['ThemeIds', 'MechanicIds'], inplace=True)
+        # TODO add filter
+        return games
 
     # TODO
     def list_games_with_possible_zero_players(self):
