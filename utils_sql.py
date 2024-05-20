@@ -37,5 +37,6 @@ def insert_all_tables(engine):
     insert_table(engine, read_data('GAMES_ARTISTS'), GamesArtists)
     insert_table(engine, read_data('GAMES_DESIGNERS'), GamesDesigners)
     insert_table(engine, read_data('GAMES_PUBLISHERS'), GamesPublishers)
+    insert_table(engine, read_data('GAMES_THEMES'), GamesThemes)
     insert_table(engine, read_data('GAMES_MECHANICS'), GamesMechanics)
     insert_table(engine, read_data('GAMES_SUBCATEGORIES'), GamesSubcategories)
