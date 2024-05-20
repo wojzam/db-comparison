@@ -1,4 +1,5 @@
 import itertools
+import json
 from abc import ABC, abstractmethod
 
 import pandas as pd
@@ -44,22 +45,6 @@ class Query(ABC):
 
     @abstractmethod
     def list_games_with_specific_theme_and_mechanic(self):
-        pass
-
-    @abstractmethod
-    def list_games_with_possible_zero_players(self):
-        pass
-
-    @abstractmethod
-    def delete_games_with_possible_zero_players(self):
-        pass
-
-    @abstractmethod
-    def list_games_from_year_2020(self):
-        pass
-
-    @abstractmethod
-    def change_date_2020_to_2021(self):
         pass
 
     @abstractmethod
@@ -137,19 +122,6 @@ class SqlQuery(Query):
             .group_by(Games.Name)
         )
 
-    def list_games_with_possible_zero_players(self):
-        return self.execute_select(lambda s: s.query(Games).where(Games.MinPlayers == 0))
-
-    # TODO
-    def delete_games_with_possible_zero_players(self):
-        pass
-
-    def list_games_from_year_2020(self):
-        pass
-
-    def change_date_2020_to_2021(self):
-        pass
-
     def _create_users(self, users):
         with sessionmaker(bind=self.engine)() as session:
             for _, row in users.head(self.limit).iterrows():
@@ -210,40 +182,52 @@ class MongoDbQuery(Query):
     def list_demand_with_game_name(self):
         return self.get_all('games', {}, {'Demand': 1, 'Name': 1, '_id': 0})
 
-    def list_games_with_possible_zero_players(self):
-        return self.get_all('games', {'MinPlayers': 0})
-
-    def delete_games_with_possible_zero_players(self):
-        self.db['games'].delete_many({'MinPlayers': 0})  # TODO delete reference
-
-    def list_games_from_year_2020(self):
-        return self.get_all('games', {'YearPublished': 2020})
-
-    def change_date_2020_to_2021(self):
-        self.db['games'].update_many({'YearPublished': 2020}, {"$set": {'YearPublished': 20}})
-
-    def delete_games_with_possible_zero_players(self):
-        self.db['games'].delete_many({'MinPlayers': 0})
-        # TODO delete reference
-
-    # TODO
     def list_games_with_artists(self):
-        pass
+        games = self.db['games']
+        return pd.DataFrame(games.aggregate([
+            {"$lookup": {"from": "artists", "as": "artists", "localField": "ArtistIds", "foreignField": "_id",
+                          "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
+            #{"$unwind": "$artists"},
+            {"$limit": self.limit},
+            {"$project": {'Name': 1, '_id': 0, "artists": 1}}]))
 
     def list_games_with_artists_publishers_designers(self):
-        pass
+        games = self.db['games']
+        return pd.DataFrame(games.aggregate([
+            {"$lookup": {"from": "artists", "as": "artists", "localField": "ArtistIds", "foreignField": "_id",
+                          "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
+            {"$lookup": {"from": "publishers", "as": "publishers", "localField": "PublisherIds", "foreignField": "_id",
+                          "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
+            {"$lookup": {"from": "designers", "as": "designers", "localField": "DesignerIds", "foreignField": "_id",
+                          "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
+            {"$limit": self.limit},
+            {"$project": {'Name': 1, '_id': 0, "artists": 1, "publishers": 1, "designers": 1}}]))
 
     def list_games_with_specific_theme_and_mechanic(self):
-        pass
+        games = self.db['games']
+        return pd.DataFrame(games.aggregate([
+            {"$lookup": {"from": "themes", "as": "theme", "localField": "ThemeIds", "foreignField": "_id",
+                          "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
+            {"$unwind": "$theme"},
+            {"$lookup": {"from": "mechanics", "as": "mechanic", "localField": "MechanicIds", "foreignField": "_id",
+                          "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
+            {"$unwind": "$mechanic"},
+            {"$match": {"theme.Name": 'Science Fiction'}},
+            {"$match": {"mechanic.Name": 'Cooperative Game'}},
+            {"$limit": self.limit},
+            {"$project": {'Name': 1, '_id': 0, "theme": 1, "mechanic": 1}}]))
 
     def _create_users(self, users):
-        pass
+        collection = self.db["users"]
+        collection.insert_many(users.to_dict(orient='records'))
 
     def _update_users(self):
-        pass
+        collection = self.db["users"]
+        collection.update_many({}, {"$set": {'Username': "$Username" + "0"}})
 
     def _delete_users(self):
-        pass
+        collection = self.db["users"]
+        collection.delete_many({})
 
 
 class RedisQuery(Query):
@@ -310,24 +294,13 @@ class RedisQuery(Query):
         # TODO add filter
         return games
 
-    # TODO
-    def list_games_with_possible_zero_players(self):
-        pass
-
-    def delete_games_with_possible_zero_players(self):
-        pass
-
-    def list_games_from_year_2020(self):
-        pass
-
-    def change_date_2020_to_2021(self):
-        pass
-
     def _create_users(self, users):
-        pass
+        for index, row in users.iterrows():
+            mapping = {key: (json.dumps(value) if isinstance(value, (list, dict)) else value) for key, value in row.to_dict().items()}
+            self.r.hset(f"{'user'}:{index}", mapping=mapping)
 
     def _update_users(self):
-        pass
+        # TODO
 
     def _delete_users(self):
-        pass
+        self.r.hdel('user:*', 'Username')
