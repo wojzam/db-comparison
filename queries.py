@@ -300,6 +300,7 @@ class RedisQuery(Query):
             self.r.hset(f"{'user'}:{index}", mapping=mapping)
 
     def _update_users(self):
+        pass
         # TODO
 
     def _delete_users(self):
