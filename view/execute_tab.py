@@ -62,7 +62,7 @@ class ExecuteTab(tk.Frame):
 
     def show_result(self, result):
         self.result_table.delete(*self.result_table.get_children())
-        if result:
+        if result is not None:
             self.result_table["columns"] = list(result.columns)
             for column in self.result_table["columns"]:
                 self.result_table.heading(column, text=column)
