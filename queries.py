@@ -7,7 +7,7 @@ from pymongo import MongoClient
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 
-from sql_tables import Games, Artists, Demand, GamesArtists, Ratings, Users
+from sql_tables import *
 
 DEFAULT_LIMIT = 100
 
@@ -35,7 +35,11 @@ class Query(ABC):
         pass
 
     @abstractmethod
-    def list_game_artists(self):
+    def list_games_with_artists(self):
+        pass
+
+    @abstractmethod
+    def list_games_with_artists_publishers_designers(self):
         pass
 
     @abstractmethod
@@ -96,10 +100,24 @@ class SqlQuery(Query):
     def list_demand_with_game_name(self):
         return self.execute_select(lambda s: s.query(Demand, Games.Name).join(Games))
 
-    def list_game_artists(self):
+    def list_games_with_artists(self):
         return self.execute_select(
             lambda s: s.query(Games.Name, func.group_concat(Artists.Name).label('Artists')).select_from(Games).join(
                 GamesArtists).join(Artists).group_by(Games.Name))
+
+    def list_games_with_artists_publishers_designers(self):
+        return self.execute_select(
+            lambda s: s.query(
+                Games.Name,
+                func.group_concat(Artists.Name).label('Artists'),
+                func.group_concat(Publishers.Name).label('Publishers'),
+                func.group_concat(Designers.Name).label('Designers')
+            ).select_from(Games)
+            .outerjoin(GamesArtists).outerjoin(Artists)
+            .outerjoin(GamesPublishers).outerjoin(Publishers)
+            .outerjoin(GamesDesigners).outerjoin(Designers)
+            .group_by(Games.Name)
+        )
 
     def list_games_with_possible_zero_players(self):
         return self.execute_select(lambda s: s.query(Games).where(Games.MinPlayers == 0))
@@ -191,7 +209,10 @@ class MongoDbQuery(Query):
         # TODO delete reference
 
     # TODO
-    def list_game_artists(self):
+    def list_games_with_artists(self):
+        pass
+
+    def list_games_with_artists_publishers_designers(self):
         pass
 
     def _create_users(self, users):
@@ -238,16 +259,25 @@ class RedisQuery(Query):
     def list_demand_with_game_name(self):
         return self.get_all('game:*', ['Name', 'Demand'])
 
-    def list_game_artists(self):
+    def list_games_with_artists(self):
         games = self.get_all("game:*", ['Name', 'ArtistIds'])
-        games['Artists'] = games['ArtistIds'].apply(self.get_artist_names)
+        games['Artists'] = games['ArtistIds'].apply(lambda ids: self.get_multiple_fields(ids, "artist"))
         games.drop(columns=['ArtistIds'], inplace=True)
-
         return games
 
-    def get_artist_names(self, ids):
+    def list_games_with_artists_publishers_designers(self):
+        games = self.get_all("game:*", ['Name', 'ArtistIds', 'PublisherIds', 'DesignerIds'])
+
+        games['Artists'] = games['ArtistIds'].apply(lambda ids: self.get_multiple_fields(ids, "artist"))
+        games['Publishers'] = games['PublisherIds'].apply(lambda ids: self.get_multiple_fields(ids, "publisher"))
+        games['Designers'] = games['DesignerIds'].apply(lambda ids: self.get_multiple_fields(ids, "designer"))
+
+        games.drop(columns=['ArtistIds', 'PublisherIds', 'DesignerIds'], inplace=True)
+        return games
+
+    def get_multiple_fields(self, ids, name, key="Name"):
         id_list = ids[1:-1].split(",")
-        return [self.r.hget(f"artist:{int(float(x))}", "Name") if x != 'NaN' else "" for x in id_list]
+        return [self.r.hget(f"{name}:{int(float(x))}", key) if x != 'NaN' else "" for x in id_list]
 
     # TODO
     def list_games_with_possible_zero_players(self):
