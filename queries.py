@@ -28,7 +28,7 @@ class Query(ABC):
         pass
 
     @abstractmethod
-    def list_artists_names(self):
+    def list_artists_names_sorted(self):
         pass
 
     @abstractmethod
@@ -83,8 +83,8 @@ class SqlQuery(Query):
     def list_singleplayer_games_with_ratings(self):
         return self.execute_select(lambda s: s.query(Games, Ratings).join(Ratings).where(Games.MinPlayers == 1))
 
-    def list_artists_names(self):
-        return self.execute_select(lambda s: s.query(Artists.Name))
+    def list_artists_names_sorted(self):
+        return self.execute_select(lambda s: s.query(Artists.Name).order_by(Artists.Name))
 
     def list_demand_with_game_name(self):
         return self.execute_select(lambda s: s.query(Demand, Games.Name).join(Games))
@@ -176,8 +176,11 @@ class MongoDbQuery(Query):
                             {'Name': 1, 'Description': 1, 'YearPublished': 1, 'MinPlayers': 1, 'MaxPlayers': 1,
                              'Ratings': 1, '_id': 0})
 
-    def list_artists_names(self):
-        return self.get_all('artists', {}, {'Name': 1, '_id': 0})
+    def list_artists_names_sorted(self):
+        return pd.DataFrame(self.db['artists']
+                            .find({}, {'Name': 1, '_id': 0})
+                            .sort("Name")
+                            .limit(self.limit))
 
     def list_demand_with_game_name(self):
         return self.get_all('games', {}, {'Demand': 1, 'Name': 1, '_id': 0})
@@ -186,8 +189,8 @@ class MongoDbQuery(Query):
         games = self.db['games']
         return pd.DataFrame(games.aggregate([
             {"$lookup": {"from": "artists", "as": "artists", "localField": "ArtistIds", "foreignField": "_id",
-                          "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
-            #{"$unwind": "$artists"},
+                         "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
+            # {"$unwind": "$artists"},
             {"$limit": self.limit},
             {"$project": {'Name': 1, '_id': 0, "artists": 1}}]))
 
@@ -195,11 +198,11 @@ class MongoDbQuery(Query):
         games = self.db['games']
         return pd.DataFrame(games.aggregate([
             {"$lookup": {"from": "artists", "as": "artists", "localField": "ArtistIds", "foreignField": "_id",
-                          "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
+                         "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
             {"$lookup": {"from": "publishers", "as": "publishers", "localField": "PublisherIds", "foreignField": "_id",
-                          "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
+                         "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
             {"$lookup": {"from": "designers", "as": "designers", "localField": "DesignerIds", "foreignField": "_id",
-                          "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
+                         "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
             {"$limit": self.limit},
             {"$project": {'Name': 1, '_id': 0, "artists": 1, "publishers": 1, "designers": 1}}]))
 
@@ -207,10 +210,10 @@ class MongoDbQuery(Query):
         games = self.db['games']
         return pd.DataFrame(games.aggregate([
             {"$lookup": {"from": "themes", "as": "theme", "localField": "ThemeIds", "foreignField": "_id",
-                          "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
+                         "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
             {"$unwind": "$theme"},
             {"$lookup": {"from": "mechanics", "as": "mechanic", "localField": "MechanicIds", "foreignField": "_id",
-                          "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
+                         "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
             {"$unwind": "$mechanic"},
             {"$match": {"theme.Name": 'Science Fiction'}},
             {"$match": {"mechanic.Name": 'Cooperative Game'}},
@@ -262,8 +265,16 @@ class RedisQuery(Query):
     def list_singleplayer_games_with_ratings(self):
         return self.get_all('game:*', ['Name', 'Ratings'])  # TODO
 
-    def list_artists_names(self):
-        return self.get_all('artist:*', ['Name'])
+    def list_artists_names_sorted(self):
+        pipe = self.r.pipeline()
+
+        for key in self.r.scan_iter('artist:*', count=800):
+            pipe.hmget(key, ['Name'])
+
+        data = pd.DataFrame(pipe.execute())
+        data.columns = ['Name']
+
+        return data.sort_values(by='Name').head(self.limit)
 
     def list_demand_with_game_name(self):
         return self.get_all('game:*', ['Name', 'Demand'])
@@ -296,7 +307,8 @@ class RedisQuery(Query):
 
     def _create_users(self, users):
         for index, row in users.iterrows():
-            mapping = {key: (json.dumps(value) if isinstance(value, (list, dict)) else value) for key, value in row.to_dict().items()}
+            mapping = {key: (json.dumps(value) if isinstance(value, (list, dict)) else value) for key, value in
+                       row.to_dict().items()}
             self.r.hset(f"{'user'}:{index}", mapping=mapping)
 
     def _update_users(self):
