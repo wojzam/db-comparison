@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-from analysis import DEFAULT_ITERATIONS
+from analysis import DEFAULT_ITERATIONS, DEFAULT_STEP_COUNT
 from model import Model, QUERIES_LABELS, DATABASES_LABELS
 from view.input import IntInput
 
@@ -52,9 +52,14 @@ class BenchmarkTab(tk.Frame):
                                               default_value=DEFAULT_ITERATIONS)
         self.test_iterations_input.grid(row=0, column=1, sticky='w', padx=10, pady=10)
 
-        tk.Label(frame_settings, text="Max Rows Affected:").grid(row=1, column=0, sticky='w', padx=10, pady=10)
+        tk.Label(frame_settings, text="Step count:").grid(row=1, column=0, sticky='w', padx=10, pady=10)
+        self.step_count_input = IntInput(frame_settings, min_value=0, max_value=99,
+                                         default_value=DEFAULT_STEP_COUNT)
+        self.step_count_input.grid(row=1, column=1, sticky='w', padx=10, pady=10)
+
+        tk.Label(frame_settings, text="Max Rows Affected:").grid(row=2, column=0, sticky='w', padx=10, pady=10)
         frame_max_rows = ttk.Frame(frame_settings)
-        frame_max_rows.grid(row=1, column=1, sticky='w', padx=0, pady=10)
+        frame_max_rows.grid(row=2, column=1, sticky='w', padx=0, pady=10)
         for rows in MAX_ROWS:
             radiobutton = tk.Radiobutton(frame_max_rows, text=str(rows), variable=self.max_rows_var, value=rows)
             radiobutton.pack(side=tk.LEFT, padx=10, pady=10)
@@ -75,4 +80,7 @@ class BenchmarkTab(tk.Frame):
 
     def get_all_parameters(self):
         included_db_labels = [d for v, d in zip(self.database_vars, DATABASES_LABELS) if v.get()]
-        return included_db_labels, self.max_rows_var.get(), self.test_iterations_input.get_value()
+        return (included_db_labels,
+                self.max_rows_var.get(),
+                self.test_iterations_input.get_value(),
+                self.step_count_input.get_value())

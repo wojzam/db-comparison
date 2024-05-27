@@ -5,13 +5,13 @@ import numpy as np
 
 DEFAULT_ITERATIONS = 5
 DEFAULT_MAX_ROWS = 1000
-DEFAULT_LIMIT_COUNT = 10
+DEFAULT_STEP_COUNT = 10
 
 
 def varied_limits_results(db, func, func_before=lambda: None, func_after=lambda: None,
-                          max_rows=DEFAULT_MAX_ROWS, iterations=DEFAULT_ITERATIONS):
+                          max_rows=DEFAULT_MAX_ROWS, iterations=DEFAULT_ITERATIONS, step_count=DEFAULT_STEP_COUNT):
     mean_times, std_times = [], []
-    limits = generate_limits_list(max_rows)
+    limits = generate_limits_list(max_rows, step_count)
     initial_limit = db.limit
     for limit in limits:
         db.limit = limit
@@ -56,7 +56,8 @@ def show_time_comparison_plot(title: str, results: dict):
     plt.show()
 
 
-def generate_limits_list(max_limit, count=DEFAULT_LIMIT_COUNT):
+def generate_limits_list(max_limit, count):
+    count = max(1, count)
     limits = [int(x) for x in np.linspace(max_limit / count, max_limit, count, dtype=int)]
     if 100 < np.min(limits):
         limits = [100] + limits
