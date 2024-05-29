@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 import redis
 from pymongo import MongoClient
+from redis.commands.search.query import Query as RQuery, NumericFilter
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 
@@ -235,7 +236,7 @@ class MongoDbQuery(Query):
 
 class RedisQuery(Query):
     def __init__(self, limit=DEFAULT_LIMIT):
-        self.r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+        self.r = redis.Redis(host='localhost', port=6379, db=1, decode_responses=True)
         self.limit = limit
 
     def get_all(self, match, fields=None):
@@ -317,3 +318,59 @@ class RedisQuery(Query):
 
     def _delete_users(self):
         self.r.hdel('user:*', 'Username')
+
+
+class RedisStackQuery(Query):
+    def __init__(self, limit=DEFAULT_LIMIT):
+        self.r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+        self.limit = limit
+
+    def get_all(self, name, query=RQuery("*")):
+        docs = self.r.ft(f"idx:{name}").search(query.paging(0, self.limit)).docs
+        return pd.DataFrame([json.loads(line['json']) for line in docs])
+
+    def get_fields(self, name, query=RQuery("*"), fields=None):
+        docs = self.r.ft(f"idx:{name}").search(query.return_fields(*fields).paging(0, self.limit)).docs
+        data = pd.DataFrame([[line[field] for field in fields] for line in docs])
+        data.columns = fields
+        return data
+
+    def list_games(self):
+        return self.get_all("game")
+
+    def list_games_names(self):
+        return self.get_fields("game", fields=["Name"])
+
+    def list_singleplayer_games_with_ratings(self):
+        return self.get_fields("game", RQuery("*").add_filter(NumericFilter("MaxPlayers", 1, 1)),
+                               fields=['Name', 'Description', 'YearPublished', 'MinPlayers', 'MaxPlayers', 'Ratings'])
+
+    def list_artists_names_sorted(self):
+        return self.get_all("artist", RQuery("*").sort_by("Name"))
+
+    def list_demand_with_game_name(self):
+        return self.get_fields("game", fields=["Name", "Demand"])
+
+    def list_games_with_artists(self):
+        # TODO
+        pass
+
+    def list_games_with_artists_publishers_designers(self):
+        # TODO
+        pass
+
+    def list_games_with_specific_theme_and_mechanic(self):
+        # TODO
+        pass
+
+    def _create_users(self, users):
+        # TODO
+        pass
+
+    def _update_users(self):
+        # TODO
+        pass
+
+    def _delete_users(self):
+        # TODO
+        pass

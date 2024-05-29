@@ -2,7 +2,7 @@ import tkinter as tk
 import webbrowser
 from tkinter import ttk, filedialog
 
-from model import Model, DATABASES_LABELS
+from model import Model, IMPORT_FUNC
 
 
 class ImportTab(tk.Frame):
@@ -32,7 +32,7 @@ class ImportTab(tk.Frame):
 
         frame_import = ttk.LabelFrame(self, text="Import")
         frame_import.pack(padx=10, pady=10, fill=tk.X)
-        for db in DATABASES_LABELS:
+        for db in IMPORT_FUNC.keys():
             button_import = ttk.Button(frame_import, text=db, command=self.import_data(db))
             button_import.pack(padx=10, pady=15, side=tk.LEFT)
 

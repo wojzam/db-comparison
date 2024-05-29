@@ -4,23 +4,25 @@ from import_mongodb import import_mongodb
 from import_mysql import import_mysql
 from import_redis import import_redis
 from import_sqlite import import_sqlite
-from queries import MySqlQuery, SqliteQuery, MongoDbQuery, RedisQuery, Query
+from queries import MySqlQuery, SqliteQuery, MongoDbQuery, RedisQuery, RedisStackQuery, Query
 from transform_data import transform
 
 MYSQL = "MySql"
 SQLITE = "Sqlite"
 MONGODB = "MongoDb"
 REDIS = "Redis"
+REDIS_STACK = "Redis Stack"
 
-DATABASES_LABELS = [MYSQL, SQLITE, MONGODB, REDIS]
+DATABASES_LABELS = [MYSQL, SQLITE, MONGODB, REDIS, REDIS_STACK]
+IMPORT_FUNC = {MYSQL: import_mysql, SQLITE: import_sqlite, MONGODB: import_mongodb, REDIS: import_redis}
 QUERIES = sorted([q for q in dir(Query) if callable(getattr(Query, q)) and not q.startswith("_")], key=len)
 QUERIES_LABELS = [q.replace("_", " ").upper() for q in QUERIES]
 QUERIES_DICT = dict(zip(QUERIES_LABELS, QUERIES))
 
 
 class Model:
-    databases = {MYSQL: MySqlQuery(), SQLITE: SqliteQuery(), MONGODB: MongoDbQuery(), REDIS: RedisQuery()}
-    import_functions = {MYSQL: import_mysql, SQLITE: import_sqlite, MONGODB: import_mongodb, REDIS: import_redis}
+    databases = {MYSQL: MySqlQuery(), SQLITE: SqliteQuery(), MONGODB: MongoDbQuery(), REDIS: RedisQuery(),
+                 REDIS_STACK: RedisStackQuery()}
     users_cache = pd.DataFrame()
 
     def execute_query(self, db_label, query_label):
@@ -85,5 +87,6 @@ class Model:
     def transform_data(source_directory):
         transform(source_directory)
 
-    def import_data(self, db_label):
-        self.import_functions[db_label]()
+    @staticmethod
+    def import_data(db_label):
+        IMPORT_FUNC[db_label]()

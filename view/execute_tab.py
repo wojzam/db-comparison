@@ -22,15 +22,15 @@ class ExecuteTab(tk.Frame):
         database_label.grid(row=0, column=0, sticky='w', padx=10, pady=10)
 
         frame_radio_buttons = tk.Frame(frame_menu)
-        frame_radio_buttons.grid(row=0, column=1, sticky='ew', padx=10, pady=10)
+        frame_radio_buttons.grid(row=0, column=1, sticky='ew', padx=0, pady=10)
         for label in DATABASES_LABELS:
             radiobutton = tk.Radiobutton(frame_radio_buttons, text=label, variable=self.database_var, value=label)
-            radiobutton.pack(side="left")
+            radiobutton.pack(side="left", padx=5)
 
         query_label = tk.Label(frame_menu, text="Select Query:")
         query_label.grid(row=1, column=0, sticky='w', padx=10, pady=10)
-        query_menu = ttk.Combobox(frame_menu, textvariable=self.query_var, values=QUERIES_LABELS, width=50)
-        query_menu.grid(row=1, column=1, sticky='ew', padx=10, pady=10)
+        query_menu = ttk.Combobox(frame_menu, textvariable=self.query_var, values=QUERIES_LABELS)
+        query_menu.grid(row=1, column=1, sticky='ew', padx=5, pady=10)
 
         timer_label = tk.Label(frame_menu, text="Execution time:")
         timer_label.grid(row=2, column=0, sticky='w', padx=10, pady=10)

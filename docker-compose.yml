@@ -19,7 +19,7 @@ services:
       - "27017:27017"
 
   redis:
-    image: redis:latest
+    image: redis/redis-stack-server:latest
     restart: always
     ports:
       - "6379:6379"
