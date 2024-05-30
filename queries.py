@@ -9,7 +9,9 @@ from redis.commands.search.query import Query as RQuery, NumericFilter
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 
+from import_redis import create_index, Path
 from sql_tables import *
+from utils_nosql import serialize
 
 DEFAULT_LIMIT = 100
 
@@ -173,9 +175,10 @@ class MongoDbQuery(Query):
         return self.get_all('games', {}, {'Name': 1, '_id': 0})
 
     def list_singleplayer_games_with_ratings(self):
-        return self.get_all('games', {'MinPlayers': 1},
-                            {'Name': 1, 'Description': 1, 'YearPublished': 1, 'MinPlayers': 1, 'MaxPlayers': 1,
-                             'Ratings': 1, '_id': 0})
+        result = self.get_all('games', {'MinPlayers': 1},
+                              {'Name': 1, 'Description': 1, 'YearPublished': 1, 'MinPlayers': 1, 'MaxPlayers': 1,
+                               'Ratings': 1, '_id': 0})
+        return split_dict_column(result, "Ratings")
 
     def list_artists_names_sorted(self):
         return pd.DataFrame(self.db['artists']
@@ -184,42 +187,23 @@ class MongoDbQuery(Query):
                             .limit(self.limit))
 
     def list_demand_with_game_name(self):
-        return self.get_all('games', {}, {'Demand': 1, 'Name': 1, '_id': 0})
+        result = self.get_all('games', {}, {'Demand': 1, 'Name': 1, '_id': 0})
+        return split_dict_column(result, "Demand")
 
     def list_games_with_artists(self):
-        games = self.db['games']
-        return pd.DataFrame(games.aggregate([
-            {"$lookup": {"from": "artists", "as": "artists", "localField": "ArtistIds", "foreignField": "_id",
-                         "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
-            # {"$unwind": "$artists"},
-            {"$limit": self.limit},
-            {"$project": {'Name': 1, '_id': 0, "artists": 1}}]))
+        games = self.get_all('games', {}, {'Name': 1, '_id': 0, "Artists": 1})
+        return extract_names(games, ['Artists'])
 
     def list_games_with_artists_publishers_designers(self):
-        games = self.db['games']
-        return pd.DataFrame(games.aggregate([
-            {"$lookup": {"from": "artists", "as": "artists", "localField": "ArtistIds", "foreignField": "_id",
-                         "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
-            {"$lookup": {"from": "publishers", "as": "publishers", "localField": "PublisherIds", "foreignField": "_id",
-                         "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
-            {"$lookup": {"from": "designers", "as": "designers", "localField": "DesignerIds", "foreignField": "_id",
-                         "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
-            {"$limit": self.limit},
-            {"$project": {'Name': 1, '_id': 0, "artists": 1, "publishers": 1, "designers": 1}}]))
+        games = self.get_all('games', {}, {'Name': 1, '_id': 0, "Artists": 1, "Publishers": 1, "Designers": 1})
+        return extract_names(games, ['Artists', 'Publishers', 'Designers'])
 
     def list_games_with_specific_theme_and_mechanic(self):
-        games = self.db['games']
-        return pd.DataFrame(games.aggregate([
-            {"$lookup": {"from": "themes", "as": "theme", "localField": "ThemeIds", "foreignField": "_id",
-                         "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
-            {"$unwind": "$theme"},
-            {"$lookup": {"from": "mechanics", "as": "mechanic", "localField": "MechanicIds", "foreignField": "_id",
-                         "pipeline": [{"$project": {'Name': 1, '_id': 0}}]}},
-            {"$unwind": "$mechanic"},
-            {"$match": {"theme.Name": 'Science Fiction'}},
-            {"$match": {"mechanic.Name": 'Cooperative Game'}},
-            {"$limit": self.limit},
-            {"$project": {'Name': 1, '_id': 0, "theme": 1, "mechanic": 1}}]))
+        games = self.get_all('games',
+                             {"Themes": {"$regex": 'Science Fiction'}, "Mechanics": {"$regex": 'Cooperative'}},
+                             {'Name': 1, '_id': 0, "Themes": 1, "Mechanics": 1})
+
+        return extract_names(games, ['Themes', 'Mechanics'])
 
     def _create_users(self, users):
         collection = self.db["users"]
@@ -264,7 +248,8 @@ class RedisQuery(Query):
         return self.get_all('game:*', ['Name'])
 
     def list_singleplayer_games_with_ratings(self):
-        return self.get_all('game:*', ['Name', 'Ratings'])  # TODO
+        result = self.get_all('game:*', ['Name', 'Ratings'])  # TODO add filter
+        return split_dict_column(result, "Ratings")
 
     def list_artists_names_sorted(self):
         pipe = self.r.pipeline()
@@ -278,39 +263,25 @@ class RedisQuery(Query):
         return data.sort_values(by='Name').head(self.limit)
 
     def list_demand_with_game_name(self):
-        return self.get_all('game:*', ['Name', 'Demand'])
+        result = self.get_all('game:*', ['Name', 'Demand'])
+        return split_dict_column(result, "Demand")
 
     def list_games_with_artists(self):
-        games = self.get_all("game:*", ['Name', 'ArtistIds'])
-        games['Artists'] = games['ArtistIds'].apply(lambda ids: self.get_multiple_fields(ids, "artist"))
-        games.drop(columns=['ArtistIds'], inplace=True)
-        return games
+        games = self.get_all('game:*', ['Name', 'Artists'])
+        return extract_names(games, ['Artists'])
 
     def list_games_with_artists_publishers_designers(self):
-        games = self.get_all("game:*", ['Name', 'ArtistIds', 'PublisherIds', 'DesignerIds'])
-
-        games['Artists'] = games['ArtistIds'].apply(lambda ids: self.get_multiple_fields(ids, "artist"))
-        games['Publishers'] = games['PublisherIds'].apply(lambda ids: self.get_multiple_fields(ids, "publisher"))
-        games['Designers'] = games['DesignerIds'].apply(lambda ids: self.get_multiple_fields(ids, "designer"))
-
-        games.drop(columns=['ArtistIds', 'PublisherIds', 'DesignerIds'], inplace=True)
-        return games
+        games = self.get_all("game:*", ['Name', 'Artists', 'Publishers', 'Designers'])
+        return extract_names(games, ['Artists', 'Publishers', 'Designers'])
 
     def list_games_with_specific_theme_and_mechanic(self):
-        games = self.get_all("game:*", ['Name', 'ThemeIds', 'MechanicIds'])
-
-        games['Themes'] = games['ThemeIds'].apply(lambda ids: self.get_multiple_fields(ids, "theme"))
-        games['Mechanics'] = games['MechanicIds'].apply(lambda ids: self.get_multiple_fields(ids, "mechanic"))
-
-        games.drop(columns=['ThemeIds', 'MechanicIds'], inplace=True)
-        # TODO add filter
-        return games
+        games = self.get_all("game:*", ['Name', 'Themes', 'Mechanics'])  # TODO add filter
+        return extract_names(games, ['Themes', 'Mechanics'])
 
     def _create_users(self, users):
         for index, row in users.iterrows():
-            mapping = {key: (json.dumps(value) if isinstance(value, (list, dict)) else value) for key, value in
-                       row.to_dict().items()}
-            self.r.hset(f"{'user'}:{index}", mapping=mapping)
+            mapping = {key: serialize(value) for key, value in row.to_dict().items()}
+            self.r.hset(f"user:{index}", mapping=mapping)
 
     def _update_users(self):
         pass
@@ -342,35 +313,56 @@ class RedisStackQuery(Query):
         return self.get_fields("game", fields=["Name"])
 
     def list_singleplayer_games_with_ratings(self):
-        return self.get_fields("game", RQuery("*").add_filter(NumericFilter("MaxPlayers", 1, 1)),
-                               fields=['Name', 'Description', 'YearPublished', 'MinPlayers', 'MaxPlayers', 'Ratings'])
+        result = self.get_fields("game", RQuery("*").add_filter(NumericFilter("MaxPlayers", 1, 1)),
+                                 fields=['Name', 'Description', 'YearPublished', 'MinPlayers', 'MaxPlayers', 'Ratings'])
+        return split_dict_column(result, "Ratings")
 
     def list_artists_names_sorted(self):
         return self.get_all("artist", RQuery("*").sort_by("Name"))
 
     def list_demand_with_game_name(self):
-        return self.get_fields("game", fields=["Name", "Demand"])
+        result = self.get_fields("game", fields=["Name", "Demand"])
+        return split_dict_column(result, "Demand")
 
     def list_games_with_artists(self):
-        # TODO
-        pass
+        games = self.get_fields("game", fields=["Name", "Artists"])
+        return extract_names(games, ['Artists'])
 
     def list_games_with_artists_publishers_designers(self):
-        # TODO
-        pass
+        games = self.get_fields("game", fields=['Name', 'Artists', 'Publishers', 'Designers'])
+        return extract_names(games, ['Artists', 'Publishers', 'Designers'])
 
     def list_games_with_specific_theme_and_mechanic(self):
-        # TODO
-        pass
+        games = self.get_fields("game",
+                                RQuery("@Themes:*Science Fiction* @Mechanics:*Cooperative Game*"),
+                                fields=['Name', 'Themes', 'Mechanics'])
+        return extract_names(games, ['Themes', 'Mechanics'])
 
     def _create_users(self, users):
-        # TODO
-        pass
+        create_index(users, 'user', self.r)
+
+        for index, row in users.iterrows():
+            mapping = {key: serialize(value) for key, value in row.to_dict().items()}
+            self.r.json().set(f"user:{index}", Path.root_path(), mapping)
 
     def _update_users(self):
-        # TODO
-        pass
+        docs = self.r.ft(f"idx:user").search(RQuery("*").paging(0, self.limit)).docs
+        for line in docs:
+            self.r.json().set(line['id'], Path.root_path(), {"Username": "Jan"})
 
     def _delete_users(self):
-        # TODO
-        pass
+        docs = self.r.ft(f"idx:user").search(RQuery("*").paging(0, self.limit)).docs
+        for line in docs:
+            self.r.json().delete(line['id'])
+
+
+def extract_names(df, columns: list):
+    for column in columns:
+        df[column] = df[column].apply(lambda values: [x['Name'] for x in json.loads(values)])
+    return df
+
+
+def split_dict_column(df, column):
+    df[column] = df[column].apply(json.loads)
+    normalized_df = pd.json_normalize(df[column])
+    return df.drop(columns=[column]).join(normalized_df)

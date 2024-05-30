@@ -1,16 +1,10 @@
-import json
-
 import redis
 from redis.commands.json.path import Path
 from redis.commands.search.field import TextField, NumericField
 from redis.commands.search.indexDefinition import IndexDefinition, IndexType
 
 from file_manager import *
-from utils_nosql import get_games_with_embedded_data
-
-
-def serialize(value):
-    return json.dumps(value) if isinstance(value, (list, dict)) else value
+from utils_nosql import get_games_with_embedded_data, serialize
 
 
 def insert(r0, r1, df, name):

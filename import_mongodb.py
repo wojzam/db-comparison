@@ -1,15 +1,23 @@
 from pymongo import MongoClient
+from file_manager import read_data
 
-from file_manager import *
-from utils_nosql import get_games_with_embedded_data
+from utils_nosql import get_games_with_embedded_data, serialize
 
 
 def insert_collection(db, df, name):
     collection = db[name]
     collection.drop()
-    df.rename(columns={df.columns[0]: "_id"}, inplace=True)
-    collection.insert_many(df.to_dict(orient='records'))
+    collection.insert_many(transform(df))
     print(f"Imported {name}")
+
+
+def transform(df):
+    df.rename(columns={df.columns[0]: "_id"}, inplace=True)
+    data = df.to_dict(orient='records')
+    for row in data:
+        for key, value in row.items():
+            row[key] = serialize(value)
+    return data
 
 
 def import_mongodb():
