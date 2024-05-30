@@ -41,15 +41,15 @@ class Query(ABC):
         pass
 
     @abstractmethod
-    def _create_users(self, users):
+    def create_users(self, users):
         pass
 
     @abstractmethod
-    def _update_users(self):
+    def update_users(self):
         pass
 
     @abstractmethod
-    def _delete_users(self):
+    def delete_users(self):
         pass
 
 

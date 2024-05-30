@@ -67,18 +67,18 @@ class SqlQuery(Query):
             .group_by(Games.Name)
         )
 
-    def _create_users(self, users):
+    def create_users(self, users):
         with sessionmaker(bind=self.engine)() as session:
             for _, row in users.head(self.limit).iterrows():
                 session.add(Users(Username=row['Username']))
             session.commit()
 
-    def _update_users(self):
+    def update_users(self):
         with sessionmaker(bind=self.engine)() as session:
             session.query(Users).update({Users.Username: Users.Username + "0"})
             session.commit()
 
-    def _delete_users(self):
+    def delete_users(self):
         with sessionmaker(bind=self.engine)() as session:
             session.query(Users).delete()
             session.commit()

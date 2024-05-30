@@ -18,7 +18,7 @@ REDIS_STACK = "Redis Stack"
 
 DATABASES_LABELS = [MYSQL, SQLITE, MONGODB, REDIS, REDIS_STACK]
 IMPORT_FUNC = {MYSQL: import_mysql, SQLITE: import_sqlite, MONGODB: import_mongodb, REDIS: import_redis}
-QUERIES = sorted([q for q in dir(Query) if callable(getattr(Query, q)) and not q.startswith("_")], key=len)
+QUERIES = sorted([q for q in dir(Query) if callable(getattr(Query, q)) and q.startswith("list")], key=len)
 QUERIES_LABELS = [q.replace("_", " ").upper() for q in QUERIES]
 QUERIES_DICT = dict(zip(QUERIES_LABELS, QUERIES))
 
@@ -46,8 +46,8 @@ class Model:
     def benchmark_create(self, db_labels, max_rows, iterations, step_count):
         users = self._generate_users(max_rows)
         results = {name: varied_limits_results(db,
-                                               func=lambda: db._create_users(users),
-                                               func_after=lambda: db._delete_users(),
+                                               func=lambda: db.create_users(users),
+                                               func_after=lambda: db.delete_users(),
                                                max_rows=max_rows,
                                                iterations=iterations,
                                                step_count=step_count)
@@ -57,9 +57,9 @@ class Model:
     def benchmark_update(self, db_labels, max_rows, iterations, step_count):
         users = self._generate_users(max_rows)
         results = {name: varied_limits_results(db,
-                                               func_before=lambda: db._create_users(users),
-                                               func=lambda: db._update_users(),
-                                               func_after=lambda: db._delete_users(),
+                                               func_before=lambda: db.create_users(users),
+                                               func=lambda: db.update_users(),
+                                               func_after=lambda: db.delete_users(),
                                                max_rows=max_rows,
                                                iterations=iterations,
                                                step_count=step_count)
@@ -69,8 +69,8 @@ class Model:
     def benchmark_delete(self, db_labels, max_rows, iterations, step_count):
         users = self._generate_users(max_rows)
         results = {name: varied_limits_results(db,
-                                               func_before=lambda: db._create_users(users),
-                                               func=lambda: db._delete_users(),
+                                               func_before=lambda: db.create_users(users),
+                                               func=lambda: db.delete_users(),
                                                max_rows=max_rows,
                                                iterations=iterations,
                                                step_count=step_count)

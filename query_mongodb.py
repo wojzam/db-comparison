@@ -50,14 +50,14 @@ class MongoDbQuery(Query):
 
         return extract_names(games, ['Themes', 'Mechanics'])
 
-    def _create_users(self, users):
+    def create_users(self, users):
         collection = self.db["users"]
         collection.insert_many(users.to_dict(orient='records'))
 
-    def _update_users(self):
+    def update_users(self):
         collection = self.db["users"]
         collection.update_many({}, {"$set": {'Username': "$Username" + "0"}})
 
-    def _delete_users(self):
+    def delete_users(self):
         collection = self.db["users"]
         collection.delete_many({})

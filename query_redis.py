@@ -68,16 +68,16 @@ class RedisQuery(Query):
         games = self.get_all("game:*", ['Name', 'Themes', 'Mechanics'])  # TODO add filter
         return extract_names(games, ['Themes', 'Mechanics'])
 
-    def _create_users(self, users):
+    def create_users(self, users):
         for index, row in users.iterrows():
             mapping = {key: serialize(value) for key, value in row.to_dict().items()}
             self.r.hset(f"user:{index}", mapping=mapping)
 
-    def _update_users(self):
+    def update_users(self):
         pass
         # TODO
 
-    def _delete_users(self):
+    def delete_users(self):
         self.r.hdel('user:*', 'Username')
 
 
@@ -128,19 +128,19 @@ class RedisStackQuery(Query):
                                 fields=['Name', 'Themes', 'Mechanics'])
         return extract_names(games, ['Themes', 'Mechanics'])
 
-    def _create_users(self, users):
+    def create_users(self, users):
         create_index(users, 'user', self.r)
 
         for index, row in users.iterrows():
             mapping = {key: serialize(value) for key, value in row.to_dict().items()}
             self.r.json().set(f"user:{index}", Path.root_path(), mapping)
 
-    def _update_users(self):
+    def update_users(self):
         docs = self.r.ft(f"idx:user").search(RQuery("*").paging(0, self.limit)).docs
         for line in docs:
             self.r.json().set(line['id'], Path.root_path(), {"Username": "Jan"})
 
-    def _delete_users(self):
+    def delete_users(self):
         docs = self.r.ft(f"idx:user").search(RQuery("*").paging(0, self.limit)).docs
         for line in docs:
             self.r.json().delete(line['id'])

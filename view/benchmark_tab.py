@@ -5,7 +5,7 @@ from analysis import DEFAULT_ITERATIONS, DEFAULT_STEP_COUNT
 from model import Model, QUERIES_LABELS, DATABASES_LABELS
 from view.input import IntInput
 
-OPERATIONS = ["Query:", "Create", "Update", "Delete"]
+OPERATIONS = ["Read:", "Create", "Update", "Delete"]
 MAX_ROWS = [10, 100, 1000, 5000, 10000, 50000]
 
 
