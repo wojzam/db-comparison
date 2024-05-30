@@ -34,17 +34,10 @@ class RedisQuery(Query):
     def list_games(self):
         return self.get_all('game:*')
 
-    def list_games_names(self):
-        return self.get_all('game:*', ['Name'])
-
-    def list_singleplayer_games_with_ratings(self):
-        result = self.get_all('game:*', ['Name', 'Ratings'])  # TODO add filter
-        return split_dict_column(result, "Ratings")
-
-    def list_artists_names_sorted(self):
+    def list_games_names_sorted(self):
         pipe = self.r.pipeline()
 
-        for key in self.r.scan_iter('artist:*', count=800):
+        for key in self.r.scan_iter('game:*', count=1000):
             pipe.hmget(key, ['Name'])
 
         data = pd.DataFrame(pipe.execute())
@@ -52,21 +45,38 @@ class RedisQuery(Query):
 
         return data.sort_values(by='Name').head(self.limit)
 
-    def list_demand_with_game_name(self):
-        result = self.get_all('game:*', ['Name', 'Demand'])
-        return split_dict_column(result, "Demand")
+    def list_artists_names_sorted(self):
+        pipe = self.r.pipeline()
 
-    def list_games_with_artists(self):
-        games = self.get_all('game:*', ['Name', 'Artists'])
-        return extract_names(games, ['Artists'])
+        for key in self.r.scan_iter('artist:*', count=1000):
+            pipe.hmget(key, ['Name'])
 
-    def list_games_with_artists_publishers_designers(self):
-        games = self.get_all("game:*", ['Name', 'Artists', 'Publishers', 'Designers'])
-        return extract_names(games, ['Artists', 'Publishers', 'Designers'])
+        data = pd.DataFrame(pipe.execute())
+        data.columns = ['Name']
 
-    def list_games_with_specific_theme_and_mechanic(self):
-        games = self.get_all("game:*", ['Name', 'Themes', 'Mechanics'])  # TODO add filter
-        return extract_names(games, ['Themes', 'Mechanics'])
+        return data.sort_values(by='Name').head(self.limit)
+
+    def list_coop_games_names_sorted_by_playtime(self):  # TODO
+        pass
+
+    def list_games_names_with_themes_chronologically(self):  # TODO
+        pass
+
+    def list_singleplayer_games_names_with_ratings_and_demand(self):
+        result = self.get_all('game:*', ['Name', 'Ratings', 'Demand'])  # TODO add filter
+        result = split_dict_column(result, "Ratings")
+        result = split_dict_column(result, "Demand")
+        return result
+
+    def list_games_names_with_artists_publishers_designers(self):
+        result = self.get_all("game:*", ['Name', 'Artists', 'Publishers', 'Designers'])
+        return extract_names(result, ['Artists', 'Publishers', 'Designers'])
+
+    def list_games_with_all_details(self):
+        result = self.get_all("game:*")
+        result = split_dict_column(result, "Ratings")
+        result = split_dict_column(result, "Demand")
+        return extract_names(result, ['Artists', 'Publishers', 'Designers', 'Themes', 'Mechanics', 'Subcategories'])
 
     def create_users(self, users):
         for index, row in users.iterrows():
@@ -99,34 +109,40 @@ class RedisStackQuery(Query):
     def list_games(self):
         return self.get_all("game")
 
-    def list_games_names(self):
-        return self.get_fields("game", fields=["Name"])
-
-    def list_singleplayer_games_with_ratings(self):
-        result = self.get_fields("game", RQuery("*").add_filter(NumericFilter("MaxPlayers", 1, 1)),
-                                 fields=['Name', 'Description', 'YearPublished', 'MinPlayers', 'MaxPlayers', 'Ratings'])
-        return split_dict_column(result, "Ratings")
+    def list_games_names_sorted(self):
+        return self.get_fields("game", RQuery("*").sort_by("Name"), fields=["Name"])
 
     def list_artists_names_sorted(self):
         return self.get_all("artist", RQuery("*").sort_by("Name"))
 
-    def list_demand_with_game_name(self):
-        result = self.get_fields("game", fields=["Name", "Demand"])
-        return split_dict_column(result, "Demand")
+    def list_coop_games_names_sorted_by_playtime(self):
+        result = self.get_fields("game",
+                                 RQuery("@Mechanics:*Cooperative*").sort_by("MfgPlaytime"),
+                                 fields=['Name', 'Mechanics'])
+        return extract_names(result, ['Mechanics'])
 
-    def list_games_with_artists(self):
-        games = self.get_fields("game", fields=["Name", "Artists"])
-        return extract_names(games, ['Artists'])
+    def list_games_names_with_themes_chronologically(self):
+        result = self.get_fields("game",
+                                 RQuery("*").sort_by("YearPublished"),
+                                 fields=['Name', 'Themes'])
+        return extract_names(result, ['Themes'])
 
-    def list_games_with_artists_publishers_designers(self):
+    def list_singleplayer_games_names_with_ratings_and_demand(self):
+        result = self.get_fields("game", RQuery("*").add_filter(NumericFilter("MinPlayers", 1, 1)),
+                                 fields=['Name', 'Ratings', 'Demand'])
+        result = split_dict_column(result, "Ratings")
+        result = split_dict_column(result, "Demand")
+        return result
+
+    def list_games_names_with_artists_publishers_designers(self):
         games = self.get_fields("game", fields=['Name', 'Artists', 'Publishers', 'Designers'])
         return extract_names(games, ['Artists', 'Publishers', 'Designers'])
 
-    def list_games_with_specific_theme_and_mechanic(self):
-        games = self.get_fields("game",
-                                RQuery("@Themes:*Science Fiction* @Mechanics:*Cooperative Game*"),
-                                fields=['Name', 'Themes', 'Mechanics'])
-        return extract_names(games, ['Themes', 'Mechanics'])
+    def list_games_with_all_details(self):
+        result = self.get_all("game")
+        result = split_dict_column(result, "Ratings")
+        result = split_dict_column(result, "Demand")
+        return extract_names(result, ['Artists', 'Publishers', 'Designers', 'Themes', 'Mechanics', 'Subcategories'])
 
     def create_users(self, users):
         create_index(users, 'user', self.r)

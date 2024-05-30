@@ -13,11 +13,7 @@ class Query(ABC):
         pass
 
     @abstractmethod
-    def list_games_names(self):
-        pass
-
-    @abstractmethod
-    def list_singleplayer_games_with_ratings(self):
+    def list_games_names_sorted(self):
         pass
 
     @abstractmethod
@@ -25,19 +21,23 @@ class Query(ABC):
         pass
 
     @abstractmethod
-    def list_demand_with_game_name(self):
+    def list_coop_games_names_sorted_by_playtime(self):
         pass
 
     @abstractmethod
-    def list_games_with_artists(self):
+    def list_games_names_with_themes_chronologically(self):
         pass
 
     @abstractmethod
-    def list_games_with_artists_publishers_designers(self):
+    def list_singleplayer_games_names_with_ratings_and_demand(self):
         pass
 
     @abstractmethod
-    def list_games_with_specific_theme_and_mechanic(self):
+    def list_games_names_with_artists_publishers_designers(self):
+        pass
+
+    @abstractmethod
+    def list_games_with_all_details(self):
         pass
 
     @abstractmethod

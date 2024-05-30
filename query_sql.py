@@ -22,24 +22,42 @@ class SqlQuery(Query):
     def list_games(self):
         return self.execute_select(lambda s: s.query(Games))
 
-    def list_games_names(self):
-        return self.execute_select(lambda s: s.query(Games.Name))
-
-    def list_singleplayer_games_with_ratings(self):
-        return self.execute_select(lambda s: s.query(Games, Ratings).join(Ratings).where(Games.MinPlayers == 1))
+    def list_games_names_sorted(self):
+        return self.execute_select(lambda s: s.query(Games.Name).order_by(Games.Name))
 
     def list_artists_names_sorted(self):
         return self.execute_select(lambda s: s.query(Artists.Name).order_by(Artists.Name))
 
-    def list_demand_with_game_name(self):
-        return self.execute_select(lambda s: s.query(Demand, Games.Name).join(Games))
-
-    def list_games_with_artists(self):
+    def list_coop_games_names_sorted_by_playtime(self):
         return self.execute_select(
-            lambda s: s.query(Games.Name, func.group_concat(Artists.Name).label('Artists')).select_from(Games).join(
-                GamesArtists).join(Artists).group_by(Games.Name))
+            lambda s: s.query(
+                Games.Name,
+                func.group_concat(Mechanics.Name).label('Mechanics')
+            ).select_from(Games)
+            .outerjoin(GamesMechanics).outerjoin(Mechanics)
+            .filter(Mechanics.Name.ilike('%Cooperative%'))
+            .group_by(Games.Name, Games.MfgPlaytime)
+            .order_by(Games.MfgPlaytime)
+        )
 
-    def list_games_with_artists_publishers_designers(self):
+    def list_games_names_with_themes_chronologically(self):
+        return self.execute_select(
+            lambda s: s.query(
+                Games.Name,
+                func.group_concat(Themes.Name).label('Themes')
+            ).select_from(Games)
+            .outerjoin(GamesThemes).outerjoin(Themes)
+            .group_by(Games.Name, Games.YearPublished)
+            .order_by(Games.YearPublished)
+        )
+
+    def list_singleplayer_games_names_with_ratings_and_demand(self):
+        return self.execute_select(lambda s: s.query(Games.Name, Ratings, Demand)
+                                   .join(Ratings)
+                                   .join(Demand)
+                                   .where(Games.MinPlayers == 1))
+
+    def list_games_names_with_artists_publishers_designers(self):
         return self.execute_select(
             lambda s: s.query(
                 Games.Name,
@@ -53,18 +71,28 @@ class SqlQuery(Query):
             .group_by(Games.Name)
         )
 
-    def list_games_with_specific_theme_and_mechanic(self):
+    def list_games_with_all_details(self):
         return self.execute_select(
             lambda s: s.query(
-                Games.Name,
+                Games,
+                Ratings,
+                Demand,
+                func.group_concat(Artists.Name).label('Artists'),
+                func.group_concat(Publishers.Name).label('Publishers'),
+                func.group_concat(Designers.Name).label('Designers'),
                 func.group_concat(Themes.Name).label('Themes'),
-                func.group_concat(Mechanics.Name).label('Mechanics')
+                func.group_concat(Mechanics.Name).label('Mechanics'),
+                func.group_concat(Subcategories.Name).label('Subcategories')
             ).select_from(Games)
+            .join(Ratings)
+            .join(Demand)
+            .outerjoin(GamesArtists).outerjoin(Artists)
+            .outerjoin(GamesPublishers).outerjoin(Publishers)
+            .outerjoin(GamesDesigners).outerjoin(Designers)
             .outerjoin(GamesThemes).outerjoin(Themes)
             .outerjoin(GamesMechanics).outerjoin(Mechanics)
-            .filter(Themes.Name.ilike('%Science Fiction%'))
-            .filter(Mechanics.Name.ilike('%Cooperative Game%'))
-            .group_by(Games.Name)
+            .outerjoin(GamesSubcategories).outerjoin(Subcategories)
+            .group_by(Games)
         )
 
     def create_users(self, users):

@@ -10,45 +10,47 @@ class MongoDbQuery(Query):
         self.limit = limit
 
     def get_all(self, collection, *args):
-        games = self.db[collection]
-        return pd.DataFrame(games.find(*args).limit(self.limit))
+        return pd.DataFrame(self.db[collection].find(*args).limit(self.limit))
+
+    def get_all_sorted(self, collection, query, fields, sort_field):
+        return pd.DataFrame(self.db[collection].find(query, fields).sort(sort_field).limit(self.limit))
 
     def list_games(self):
         return self.get_all('games')
 
-    def list_games_names(self):
-        return self.get_all('games', {}, {'Name': 1, '_id': 0})
-
-    def list_singleplayer_games_with_ratings(self):
-        result = self.get_all('games', {'MinPlayers': 1},
-                              {'Name': 1, 'Description': 1, 'YearPublished': 1, 'MinPlayers': 1, 'MaxPlayers': 1,
-                               'Ratings': 1, '_id': 0})
-        return split_dict_column(result, "Ratings")
+    def list_games_names_sorted(self):
+        return self.get_all_sorted('games', {}, {'Name': 1, '_id': 0}, "Name")
 
     def list_artists_names_sorted(self):
-        return pd.DataFrame(self.db['artists']
-                            .find({}, {'Name': 1, '_id': 0})
-                            .sort("Name")
-                            .limit(self.limit))
+        return self.get_all_sorted('artists', {}, {'Name': 1, '_id': 0}, "Name")
 
-    def list_demand_with_game_name(self):
-        result = self.get_all('games', {}, {'Demand': 1, 'Name': 1, '_id': 0})
-        return split_dict_column(result, "Demand")
+    def list_coop_games_names_sorted_by_playtime(self):
+        result = self.get_all_sorted('games',
+                                     {"Mechanics": {"$regex": 'Cooperative'}},
+                                     {'Name': 1, '_id': 0, 'Mechanics': 1},
+                                     "MfgPlaytime")
+        return extract_names(result, ['Mechanics'])
 
-    def list_games_with_artists(self):
-        games = self.get_all('games', {}, {'Name': 1, '_id': 0, "Artists": 1})
-        return extract_names(games, ['Artists'])
+    def list_games_names_with_themes_chronologically(self):
+        result = self.get_all_sorted('games', {}, {'Name': 1, 'Themes': 1, '_id': 0}, "YearPublished")
+        return extract_names(result, ["Themes"])
 
-    def list_games_with_artists_publishers_designers(self):
-        games = self.get_all('games', {}, {'Name': 1, '_id': 0, "Artists": 1, "Publishers": 1, "Designers": 1})
-        return extract_names(games, ['Artists', 'Publishers', 'Designers'])
+    def list_singleplayer_games_names_with_ratings_and_demand(self):
+        result = self.get_all('games', {'MinPlayers': 1},
+                              {'Name': 1, 'Ratings': 1, 'Demand': 1, '_id': 0})
+        result = split_dict_column(result, "Ratings")
+        result = split_dict_column(result, "Demand")
+        return result
 
-    def list_games_with_specific_theme_and_mechanic(self):
-        games = self.get_all('games',
-                             {"Themes": {"$regex": 'Science Fiction'}, "Mechanics": {"$regex": 'Cooperative'}},
-                             {'Name': 1, '_id': 0, "Themes": 1, "Mechanics": 1})
+    def list_games_names_with_artists_publishers_designers(self):
+        result = self.get_all('games', {}, {'Name': 1, '_id': 0, "Artists": 1, "Publishers": 1, "Designers": 1})
+        return extract_names(result, ['Artists', 'Publishers', 'Designers'])
 
-        return extract_names(games, ['Themes', 'Mechanics'])
+    def list_games_with_all_details(self):
+        result = self.get_all('games', {}, None)
+        result = split_dict_column(result, "Ratings")
+        result = split_dict_column(result, "Demand")
+        return extract_names(result, ['Artists', 'Publishers', 'Designers', 'Themes', 'Mechanics', 'Subcategories'])
 
     def create_users(self, users):
         collection = self.db["users"]
