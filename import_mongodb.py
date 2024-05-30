@@ -1,6 +1,6 @@
 from pymongo import MongoClient
-from file_manager import read_data
 
+from file_manager import read_data
 from utils_nosql import get_games_with_embedded_data, serialize
 
 

@@ -4,7 +4,10 @@ from import_mongodb import import_mongodb
 from import_mysql import import_mysql
 from import_redis import import_redis
 from import_sqlite import import_sqlite
-from queries import MySqlQuery, SqliteQuery, MongoDbQuery, RedisQuery, RedisStackQuery, Query
+from query_mongodb import MongoDbQuery
+from query_redis import RedisQuery, RedisStackQuery
+from query_sql import MySqlQuery, SqliteQuery
+from query_utils import Query
 from transform_data import transform
 
 MYSQL = "MySql"
