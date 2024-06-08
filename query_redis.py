@@ -84,11 +84,13 @@ class RedisQuery(Query):
             self.r.hset(f"user:{index}", mapping=mapping)
 
     def update_users(self):
-        pass
-        # TODO
+        for key in self.r.scan_iter('user:*', count=1000):
+            username = self.r.hget(key, 'Username')
+            self.r.hset(key, 'Username', username + "0")
 
     def delete_users(self):
-        self.r.hdel('user:*', 'Username')
+        for key in self.r.scan_iter('user:*', count=1000):
+            self.r.delete(key)
 
 
 class RedisStackQuery(Query):
@@ -154,7 +156,8 @@ class RedisStackQuery(Query):
     def update_users(self):
         docs = self.r.ft(f"idx:user").search(RQuery("*").paging(0, self.limit)).docs
         for line in docs:
-            self.r.json().set(line['id'], Path.root_path(), {"Username": "Jan"})
+            username = self.r.json().get(line['id'], '$.Username')[0]
+            self.r.json().set(line['id'], Path('.Username'), username + '0')
 
     def delete_users(self):
         docs = self.r.ft(f"idx:user").search(RQuery("*").paging(0, self.limit)).docs
