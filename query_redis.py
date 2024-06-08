@@ -56,16 +56,52 @@ class RedisQuery(Query):
 
         return data.sort_values(by='Name').head(self.limit)
 
-    def list_coop_games_names_sorted_by_playtime(self):  # TODO
-        pass
+    def list_coop_games_names_sorted_by_playtime(self):
+        pipe = self.r.pipeline()
 
-    def list_games_names_with_themes_chronologically(self):  # TODO
-        pass
+        for key in self.r.scan_iter('game:*', count=1000):
+            pipe.hmget(key, ['Name', 'MfgPlaytime', 'Mechanics'])
+
+        data = pd.DataFrame(pipe.execute())
+        data.columns = ['Name', 'MfgPlaytime', 'Mechanics']
+
+        data = data[data['Mechanics'].str.contains('Cooperative Game')]
+
+        data['MfgPlaytime'] = data['MfgPlaytime'].astype(int)
+        data = data.sort_values(by='MfgPlaytime').head(self.limit)
+        data = data.drop(['MfgPlaytime'], axis=1)
+
+        return extract_names(data, ['Mechanics'])
+
+    def list_games_names_with_themes_chronologically(self):
+        pipe = self.r.pipeline()
+
+        for key in self.r.scan_iter('game:*', count=1000):
+            pipe.hmget(key, ['Name', 'Themes', 'YearPublished'])
+
+        data = pd.DataFrame(pipe.execute())
+        data.columns = ['Name', 'Themes', 'YearPublished']
+
+        data['YearPublished'] = data['YearPublished'].astype(int)
+        data = data.sort_values(by='YearPublished').head(self.limit)
+        data = data.drop(['YearPublished'], axis=1)
+
+        return extract_names(data, ['Themes'])
 
     def list_singleplayer_games_names_with_ratings_and_demand(self):
-        result = self.get_all('game:*', ['Name', 'Ratings', 'Demand'])  # TODO add filter
+        pipe = self.r.pipeline()
+        for key in self.r.scan_iter('game:*', count=1000):
+            pipe.hmget(key, ['Name', 'Ratings', 'Demand', 'MinPlayers'])
+
+        result = pd.DataFrame(pipe.execute())
+        result.columns = ['Name', 'Ratings', 'Demand', 'MinPlayers']
+
         result = split_dict_column(result, "Ratings")
         result = split_dict_column(result, "Demand")
+
+        result['MinPlayers'] = result['MinPlayers'].astype(int)
+        result = result[result['MinPlayers'] == 1].head(self.limit)
+        result = result.drop(['MinPlayers'], axis=1)
         return result
 
     def list_games_names_with_artists_publishers_designers(self):
